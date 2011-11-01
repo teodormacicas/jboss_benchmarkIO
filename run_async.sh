@@ -26,7 +26,7 @@ host=$1;
 port=$2
 n=$3;
 delay=$4;
-filename=$n-$delay-$(date +%s)-log.txt
+filename=async-$n-$delay-$(date +%s)-log.txt
 printf "Running clients with:\n";
 printf "\tHostname: $host\n";
 printf "\tNumber of clients: $n\n";
@@ -37,7 +37,7 @@ printf "\n\t->Log file: $filename\n";
 
 log_file=$(date +%s)-log.txt
 
-mvn exec:java -Dexec.mainClass="org.jboss.nio2.client.Nio2Client" -Dexec.args="$host $port $n $delay" > $log_file
+mvn exec:java -Dexec.mainClass="org.jboss.nio2.client.Nio2AsyncClient" -Dexec.args="$host $port $n $delay" > $log_file
 
 printf "max \t min \t avg\n" > $filename
 cat $log_file | egrep -v '[a-zA-Z]|^\s*$' >> $filename

@@ -26,7 +26,7 @@ host=$1;
 port=$2
 n=$3;
 delay=$4;
-filename=$n-$delay-$(date +%s)-log.txt
+filename=sync-$n-$delay-$(date +%s)-log.txt
 printf "Running clients with:\n";
 printf "\tHostname: $host\n";
 printf "\tNumber of clients: $n\n";

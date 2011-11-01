@@ -51,14 +51,15 @@ public class SessionGenerator {
 		String randomNum = new Integer(prng.nextInt()).toString();
 
 		// get its digest
-		MessageDigest sha = MessageDigest.getInstance("SHA-1");
+		MessageDigest sha = MessageDigest.getInstance("SHA-1"); 	
 		byte[] result = sha.digest(randomNum.getBytes());
 
 		System.out.println("Random number: " + randomNum);
-		System.out.println("Message digest: " + hexEncode(result));
+		System.out.println("Message digest 1: " + hexEncode(result));
+		System.out.println("Message digest 2: " + new String(result));
 		
 		
-		return hexEncode(result);
+		return new String(result);
 	}
 
 	/**
