@@ -46,7 +46,7 @@ import org.jboss.nio2.server.SessionGenerator;
  */
 public class Nio2SelectorServer extends Thread {
 
-	public static final int SERVER_PORT[] = { 4560, 4561, 4562 };
+	public static final int SERVER_PORT[] = { 8000, 8001, 8002 };
 	private static final Logger logger = Logger.getLogger(Nio2SelectorServer.class.getName());
 
 	private Selector selector;
