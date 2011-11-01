@@ -26,16 +26,13 @@ host=$1;
 port=$2
 n=$3;
 delay=$4;
-filename=sync-$n-$delay-$(date +%s)-log.txt
+log_file=$(date +%s)-log.txt
+filename=sync-$n-$delay-$log_file
 printf "Running clients with:\n";
 printf "\tHostname: $host\n";
 printf "\tNumber of clients: $n\n";
 printf "\tDelay: $delay\n";
 printf "\n\t->Log file: $filename\n";
-
-
-
-log_file=$(date +%s)-log.txt
 
 mvn exec:java -Dexec.mainClass="org.jboss.nio2.client.Nio2Client" -Dexec.args="$host $port $n $delay" > $log_file
 

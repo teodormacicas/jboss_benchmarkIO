@@ -25,16 +25,13 @@
 host=$1;
 n=$2;
 delay=$3;
-filename=selector-$n-$delay-$(date +%s)-log.txt
-printf "Running clients with:\n";
+log_file=$(date +%s)-log.txt
+filename=selector-$n-$delay-$log_file
+printf "\nRunning clients with:\n";
 printf "\tHostname: $host\n";
 printf "\tNumber of clients: $n\n";
 printf "\tDelay: $delay\n";
 printf "\n\t->Log file: $filename\n";
-
-
-
-log_file=$(date +%s)-log.txt
 
 mvn exec:java -Dexec.mainClass="org.jboss.nio2.client.Nio2SelectorClient" -Dexec.args="$host $n $delay" > $log_file
 
