@@ -1,0 +1,45 @@
+/*
+ * JBoss, Home of Professional Open Source. Copyright 2011, Red Hat, Inc., and
+ * individual contributors as indicated by the @author tags. See the
+ * copyright.txt file in the distribution for a full listing of individual
+ * contributors.
+ * 
+ * This is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ * 
+ * This software is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this software; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA, or see the FSF
+ * site: http://www.fsf.org.
+ */
+ 
+ 
+to run these examples you may use shell scripts, there are three scripts.
+In these examples there are three kind of servers, the first one uses a
+normal ServerSocketChannel, the second one uses a Selector for three
+ServerSocketChannel and the last one uses uses an AsynchronousServerSocketChannel
+
+
+1) To run servers, use the following command line
+  * mvn exec:java -Dexec.mainClass="org.jboss.nio2.server.sync.Nio2Server"
+  * mvn exec:java -Dexec.mainClass="org.jboss.nio2.server.selector.Nio2SelectorServer"
+  * mvn exec:java -Dexec.mainClass="org.jboss.nio2.server.async.Nio2AsyncServer"
+ 
+ 
+ 2) To run clients, use the following command line
+  * sh run_sync.sh host port n delay
+  * sh run_async.sh host port n delay
+  * sh run_selector.sh host n delay
+  
+  
+  host: the server hostname/IP
+  port: the server port
+  n: the number of threads
+  delay: the delay between each two requests
