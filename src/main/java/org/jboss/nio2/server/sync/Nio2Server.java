@@ -30,6 +30,8 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.jboss.nio2.server.SessionGenerator;
+
 /**
  * {@code Nio2Server}
  * <p/>
@@ -46,6 +48,7 @@ public class Nio2Server extends Thread {
 	private int port;
 	private boolean running = true;
 	private ServerSocketChannel serverSocketChannel;
+	private SessionGenerator generator = new SessionGenerator();
 
 	/**
 	 * Create a new instance of {@code Nio2Server}
@@ -79,9 +82,10 @@ public class Nio2Server extends Thread {
 				if (channel != null) {
 					logger.log(Level.INFO, "New connection received");
 					Nio2ClientManager clientManager = new Nio2ClientManager(channel);
+					clientManager.setSessionId(generator.generateId());
 					pool.execute(clientManager);
 				}
-			} catch (IOException e) {
+			} catch (Exception e) {
 				logger.log(Level.SEVERE, e.getMessage(), e);
 				try {
 					this.close();

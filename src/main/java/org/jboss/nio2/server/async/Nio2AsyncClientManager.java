@@ -39,6 +39,7 @@ public class Nio2AsyncClientManager implements Runnable {
 
 	private static final Logger logger = Logger.getLogger(Nio2AsyncClientManager.class.getName());
 	private AsynchronousSocketChannel channel;
+	private String sessionId;
 
 	/**
 	 * Create a new instance of @ NioAsyncClientManager}
@@ -64,7 +65,7 @@ public class Nio2AsyncClientManager implements Runnable {
 
 				byte bytes[] = new byte[count.get()];
 				bb.get(bytes);
-				System.out.println("Request from client : " + new String(bytes));
+				System.out.println("[" + this.sessionId + "]" + new String(bytes));
 				bb.clear();
 				bb.put("Pong from server".getBytes());
 				bb.flip();
@@ -88,6 +89,25 @@ public class Nio2AsyncClientManager implements Runnable {
 	public void close() throws IOException {
 		logger.log(Level.INFO, "Closing remote connection");
 		this.channel.close();
+	}
+
+	/**
+	 * Getter for sessionId
+	 * 
+	 * @return the sessionId
+	 */
+	public String getSessionId() {
+		return this.sessionId;
+	}
+
+	/**
+	 * Setter for the sessionId
+	 * 
+	 * @param sessionId
+	 *            the sessionId to set
+	 */
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
 	}
 
 }

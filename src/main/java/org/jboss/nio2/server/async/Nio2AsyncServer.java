@@ -34,6 +34,8 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.jboss.nio2.server.SessionGenerator;
+
 /**
  * {@code NioAsyncServer}
  * 
@@ -68,10 +70,14 @@ public class Nio2AsyncServer {
 
 		boolean running = true;
 
+		SessionGenerator generator = new SessionGenerator();
+		
 		while (running) {
 			// server.accept(null, new CompletionHandlerImpl());
 			Future<AsynchronousSocketChannel> future = listener.accept();
-			pool.execute(new Nio2AsyncClientManager(future.get()));
+			Nio2AsyncClientManager manager = new Nio2AsyncClientManager(future.get());
+			manager.setSessionId(generator.generateId());
+			pool.execute(manager);
 		}
 
 		listener.close();

@@ -38,8 +38,6 @@ import java.util.Random;
  */
 public class Nio2Client extends Thread {
 
-	public static final String STR_URL = "http://localhost:8080/comet/CometServletTest";
-	public static final String CRLF = "\r\n";
 	public static final int MAX = 1000;
 	public static final int N_THREADS = 100;
 	public static final int DEFAULT_DELAY = 1000; // default wait delay 1000ms
@@ -116,7 +114,6 @@ public class Nio2Client extends Thread {
 		 * System.out.println("Received from server : " + new String(bytes)); }
 		 * bb.clear(); } catch (Exception ex) { ex.printStackTrace(); } }
 		 */
-
 	}
 
 	/**
