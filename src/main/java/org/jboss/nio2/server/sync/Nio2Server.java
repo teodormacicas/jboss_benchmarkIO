@@ -48,7 +48,6 @@ public class Nio2Server extends Thread {
 	private int port;
 	private boolean running = true;
 	private ServerSocketChannel serverSocketChannel;
-	private SessionGenerator generator = new SessionGenerator();
 
 	/**
 	 * Create a new instance of {@code Nio2Server}
@@ -82,7 +81,7 @@ public class Nio2Server extends Thread {
 				if (channel != null) {
 					logger.log(Level.INFO, "New connection received");
 					Nio2ClientManager clientManager = new Nio2ClientManager(channel);
-					clientManager.setSessionId(generator.generateId());
+					clientManager.setSessionId(SessionGenerator.generateId());
 					pool.execute(clientManager);
 				}
 			} catch (Exception e) {

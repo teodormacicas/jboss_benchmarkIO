@@ -52,7 +52,6 @@ public class Nio2SelectorServer extends Thread {
 	private Selector selector;
 	private ServerSocketChannel channels[];
 	private ExecutorService pool;
-	private SessionGenerator generator = new SessionGenerator();
 
 	/**
 	 * Create a new instance of @ Nio2SelectorServer}
@@ -137,7 +136,7 @@ public class Nio2SelectorServer extends Thread {
 			ServerSocketChannel serverChannel = (ServerSocketChannel) selKey.channel();
 			SocketChannel channel = serverChannel.accept();
 			Nio2SelectorClientManager manager = new Nio2SelectorClientManager(channel);
-			manager.setSessionId(generator.generateId());
+			manager.setSessionId(SessionGenerator.generateId());
 			this.pool.execute(manager);
 			logger.log(Level.INFO, "Acceptable selection key is being processed");
 		}

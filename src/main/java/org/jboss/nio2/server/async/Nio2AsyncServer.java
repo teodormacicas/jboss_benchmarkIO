@@ -62,21 +62,17 @@ public class Nio2AsyncServer {
 	public static void main(String[] args) throws Exception {
 
 		ExecutorService pool = Executors.newFixedThreadPool(200);
-
 		AsynchronousChannelGroup threadGroup = AsynchronousChannelGroup.withThreadPool(pool);
-
 		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open(
 				threadGroup).bind(new InetSocketAddress(SERVER_PORT));
 
 		boolean running = true;
 
-		SessionGenerator generator = new SessionGenerator();
-		
 		while (running) {
 			// server.accept(null, new CompletionHandlerImpl());
 			Future<AsynchronousSocketChannel> future = listener.accept();
 			Nio2AsyncClientManager manager = new Nio2AsyncClientManager(future.get());
-			manager.setSessionId(generator.generateId());
+			manager.setSessionId(SessionGenerator.generateId());
 			pool.execute(manager);
 		}
 
