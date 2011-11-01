@@ -37,7 +37,7 @@ printf "\n\t->Log file: $filename\n";
 
 log_file=$(date +%s)-log.txt
 
-mvn exec:java -Dexec.mainClass="org.jboss.nio2.sync.Nio2Client" -Dexec.args="$host $port $n $delay" > $log_file
+mvn exec:java -Dexec.mainClass="org.jboss.nio2.client.Nio2Client" -Dexec.args="$host $port $n $delay" > $log_file
 
 printf "max \t min \t avg\n" > $filename
 cat $log_file | egrep -v '[a-zA-Z]|^\s*$' >> $filename
