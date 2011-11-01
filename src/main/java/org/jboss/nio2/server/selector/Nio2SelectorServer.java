@@ -44,14 +44,11 @@ import org.jboss.nio2.server.SessionGenerator;
  * 
  * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
  */
-public class Nio2SelectorServer extends Thread {
+public class Nio2SelectorServer {
 
 	public static final int SERVER_PORT[] = { 8000, 8001, 8002 };
 	private static final Logger logger = Logger.getLogger(Nio2SelectorServer.class.getName());
-
-	private Selector selector;
-	private ServerSocketChannel channels[];
-	private ExecutorService pool;
+	private static final ExecutorService executor = Executors.newFixedThreadPool(200);
 
 	/**
 	 * Create a new instance of @ Nio2SelectorServer}
@@ -60,37 +57,44 @@ public class Nio2SelectorServer extends Thread {
 	 */
 	public Nio2SelectorServer() throws IOException {
 		super();
-		this.init();
 	}
 
-	@PostConstruct
-	protected void init() throws IOException {
-		logger.log(Level.INFO, "Intializing NIO2 Selector Server");
-		this.pool = Executors.newFixedThreadPool(200);
-		this.selector = Selector.open();
-		this.channels = new ServerSocketChannel[SERVER_PORT.length];
+	/**
+	 * 
+	 * @param selKey
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public static void processSelectionKey(SelectionKey selKey) throws Exception {
+		logger.log(Level.INFO, "Starting processing selection key");
+
+		if (selKey.isAcceptable()) {
+			logger.log(Level.INFO, "Processing acceptable selection key");
+			ServerSocketChannel serverChannel = (ServerSocketChannel) selKey.channel();
+			SocketChannel channel = serverChannel.accept();
+			Nio2SelectorClientManager manager = new Nio2SelectorClientManager(channel);
+			manager.setSessionId(SessionGenerator.generateId());
+			executor.execute(manager);
+			logger.log(Level.INFO, "Acceptable selection key is being processed");
+		}
+
+		logger.log(Level.INFO, "Ending processing selection key");
+	}
+
+	/**
+	 * @param args
+	 */
+	public static void main(String[] args) throws Exception {
+
+		Selector selector = Selector.open();
+		ServerSocketChannel channels[] = new ServerSocketChannel[SERVER_PORT.length];
 		for (int i = 0; i < SERVER_PORT.length; i++) {
 			channels[i] = ServerSocketChannel.open();
 			channels[i].configureBlocking(false);
 			channels[i].socket().bind(new InetSocketAddress(SERVER_PORT[i]));
 			channels[i].register(selector, channels[i].validOps());
 		}
-		logger.log(Level.INFO, "NIO2 Selector Server Intialized");
-	}
 
-	@Override
-	protected void finalize() throws Throwable {
-		for (int i = 0; i < channels.length; i++) {
-			this.channels[i].close();
-			this.channels[i] = null;
-		}
-		this.selector.close();
-		this.selector = null;
-		super.finalize();
-	}
-
-	@Override
-	public void run() {
 		while (true) {
 			try {
 				logger.log(Level.INFO, "Waiting for new events");
@@ -120,36 +124,5 @@ public class Nio2SelectorServer extends Thread {
 				}
 			}
 		}
-	}
-
-	/**
-	 * 
-	 * @param selKey
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	public void processSelectionKey(SelectionKey selKey) throws Exception {
-		logger.log(Level.INFO, "Starting processing selection key");
-
-		if (selKey.isAcceptable()) {
-			logger.log(Level.INFO, "Processing acceptable selection key");
-			ServerSocketChannel serverChannel = (ServerSocketChannel) selKey.channel();
-			SocketChannel channel = serverChannel.accept();
-			Nio2SelectorClientManager manager = new Nio2SelectorClientManager(channel);
-			manager.setSessionId(SessionGenerator.generateId());
-			this.pool.execute(manager);
-			logger.log(Level.INFO, "Acceptable selection key is being processed");
-		}
-
-		logger.log(Level.INFO, "Ending processing selection key");
-	}
-
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) throws Exception {
-		Thread server = new Nio2SelectorServer();
-		server.start();
-		server.join();
 	}
 }
