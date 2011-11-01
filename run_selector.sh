@@ -22,6 +22,13 @@
 # site: http://www.fsf.org.
 
 
+# File: run_selector.sh
+#
+# Created on Nov 1, 2011 at 10:30:28 AM 
+#
+# @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
+
+
 host=$1;
 n=$2;
 delay=$3;
