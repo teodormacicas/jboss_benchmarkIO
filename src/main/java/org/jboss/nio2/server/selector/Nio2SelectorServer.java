@@ -46,7 +46,7 @@ public class Nio2SelectorServer {
 
 	public static final int SERVER_PORTS[] = { 8000, 8001, 8002 };
 	private static final Logger logger = Logger.getLogger(Nio2SelectorServer.class.getName());
-	private static final ExecutorService executor = Executors.newFixedThreadPool(200);
+	private static final ExecutorService executor = Executors.newFixedThreadPool(400);
 
 	/**
 	 * Create a new instance of {@code Nio2SelectorServer}

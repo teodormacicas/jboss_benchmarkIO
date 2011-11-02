@@ -70,7 +70,7 @@ public class Nio2AsyncServer {
 			}
 		}
 
-		ExecutorService pool = Executors.newFixedThreadPool(200);
+		ExecutorService pool = Executors.newFixedThreadPool(400);
 		// AsynchronousChannelGroup threadGroup =
 		// AsynchronousChannelGroup.withThreadPool(pool);
 		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open()

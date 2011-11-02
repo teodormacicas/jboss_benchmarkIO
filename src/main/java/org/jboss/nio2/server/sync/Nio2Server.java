@@ -75,7 +75,7 @@ public class Nio2Server {
 		logger.info("Server started successfully...");
 
 		boolean running = true;
-		ExecutorService pool = Executors.newFixedThreadPool(200);
+		ExecutorService pool = Executors.newFixedThreadPool(400);
 		while (running) {
 			logger.log(Level.INFO, "Waiting for new connection");
 			SocketChannel channel = serverSocketChannel.accept();
