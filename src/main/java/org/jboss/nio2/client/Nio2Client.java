@@ -50,6 +50,7 @@ public class Nio2Client extends Thread {
 	private int delay;
 	private SocketChannel channel;
 	private ByteBuffer byteBuffer;
+	private String sessionId;
 
 	/**
 	 * Create a new instance of {@code Nio2Client}
@@ -124,9 +125,11 @@ public class Nio2Client extends Thread {
 	 */
 	protected void init() throws Exception {
 		System.out.println("Initializing communication...");
-		write("Ping from client " + getId() + "\n");
+		write("POST /session-" + getId());
 		String response = read();
-		System.out.println("Communication intialized -> " + response);
+		String tab[] = response.split("\\s+");
+		this.sessionId = tab[1];
+		System.out.println("Communication intialized -> Session ID:" + this.sessionId);
 	}
 
 	/**

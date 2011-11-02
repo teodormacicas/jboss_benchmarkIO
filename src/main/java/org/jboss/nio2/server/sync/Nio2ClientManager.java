@@ -55,20 +55,30 @@ public class Nio2ClientManager implements Runnable {
 
 		ByteBuffer bb = ByteBuffer.allocate(1024);
 		int count = -1;
+		boolean initialized = false;
+		String response = null;
 		try {
-			while (channel.isConnected() && channel.isOpen()) {
+
+			do {
 				bb.clear();
 				count = channel.read(bb);
 				bb.flip();
-
 				byte bytes[] = new byte[count];
 				bb.get(bytes);
 				System.out.println("[" + this.sessionId + "] " + new String(bytes));
+
+				if (!initialized) {
+					initialized = true;
+					response = "jSessionId: " + this.sessionId;
+				} else {
+					response = "[" + this.sessionId + "] Pong from server";
+				}
+
 				bb.clear();
-				bb.put(("[" + this.sessionId + "] Pong from server\n").getBytes());
+				bb.put(response.getBytes());
 				bb.flip();
 				channel.write(bb);
-			}
+			} while (channel.isConnected() && channel.isOpen());
 		} catch (Exception exp) {
 			logger.log(Level.SEVERE, "ERROR from client side");
 		} finally {
