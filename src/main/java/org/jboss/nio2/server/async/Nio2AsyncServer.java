@@ -24,7 +24,6 @@ package org.jboss.nio2.server.async;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
@@ -62,9 +61,8 @@ public class Nio2AsyncServer {
 	public static void main(String[] args) throws Exception {
 
 		ExecutorService pool = Executors.newFixedThreadPool(200);
-		AsynchronousChannelGroup threadGroup = AsynchronousChannelGroup.withThreadPool(pool);
-		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open(
-				threadGroup).bind(new InetSocketAddress(SERVER_PORT));
+		//AsynchronousChannelGroup threadGroup = AsynchronousChannelGroup.withThreadPool(pool);
+		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open().bind(new InetSocketAddress(SERVER_PORT));
 
 		boolean running = true;
 
