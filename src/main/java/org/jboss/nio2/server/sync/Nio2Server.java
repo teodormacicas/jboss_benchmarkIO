@@ -40,69 +40,16 @@ import org.jboss.nio2.server.SessionGenerator;
  * 
  * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
  */
-public class Nio2Server extends Thread {
+public class Nio2Server {
 
 	private static final Logger logger = Logger.getLogger(Nio2Server.class.getName());
 	protected static final int SERVER_PORT = 8080;
 
-	private int port;
-	private boolean running = true;
-	private ServerSocketChannel serverSocketChannel;
-
 	/**
 	 * Create a new instance of {@code Nio2Server}
-	 * 
-	 * @param port
-	 * @throws Exception
 	 */
-	public Nio2Server(int port) throws Exception {
-		logger.info("Initilizing the server socket channel");
-		this.port = port;
-	}
-
-	@Override
-	public void run() {
-		logger.info("Starting server...");
-		try {
-			this.serverSocketChannel = ServerSocketChannel.open().bind(new InetSocketAddress(port));
-			//serverSocketChannel.configureBlocking(false);
-		} catch (Exception exp) {
-			logger.log(Level.SEVERE, exp.getMessage(), exp);
-			System.exit(-1);
-		}
-		
-		logger.info("Server started successfully...");
-		
-		ExecutorService pool = Executors.newFixedThreadPool(200);
-		while (running) {
-			try {
-				logger.log(Level.INFO, "Waiting for new connection");
-				SocketChannel channel = serverSocketChannel.accept();
-				if (channel != null) {
-					logger.log(Level.INFO, "New connection received");
-					Nio2ClientManager clientManager = new Nio2ClientManager(channel);
-					clientManager.setSessionId(SessionGenerator.generateId());
-					pool.execute(clientManager);
-				}
-			} catch (Exception e) {
-				logger.log(Level.SEVERE, e.getMessage(), e);
-				try {
-					this.close();
-				} catch (IOException e1) {
-					logger.log(Level.SEVERE, e1.getMessage(), e1);
-				}
-			}
-		}
-		logger.info("Server shutdown");
-	}
-
-	/**
-	 * 
-	 * @throws IOException
-	 */
-	public void close() throws IOException {
-		this.running = false;
-		this.serverSocketChannel.close();
+	public Nio2Server() {
+		super();
 	}
 
 	/**
@@ -111,8 +58,34 @@ public class Nio2Server extends Thread {
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		Nio2Server test = new Nio2Server(SERVER_PORT);
-		test.start();
-		test.join();
+
+		int port = SERVER_PORT;
+		if (args.length > 0) {
+			try {
+				port = Integer.valueOf(args[0]);
+			} catch (NumberFormatException e) {
+				logger.log(Level.SEVERE, e.getMessage(), e);
+			}
+		}
+
+		logger.log(Level.INFO, "Starting NIO2 Synchronous Sever on port {0} ...", port);
+		ServerSocketChannel serverSocketChannel = ServerSocketChannel.open().bind(
+				new InetSocketAddress(port));
+
+		logger.info("Server started successfully...");
+
+		boolean running = true;
+		ExecutorService pool = Executors.newFixedThreadPool(200);
+		while (running) {
+			logger.log(Level.INFO, "Waiting for new connection");
+			SocketChannel channel = serverSocketChannel.accept();
+			if (channel != null) {
+				logger.log(Level.INFO, "New connection received");
+				Nio2ClientManager clientManager = new Nio2ClientManager(channel);
+				clientManager.setSessionId(SessionGenerator.generateId());
+				pool.execute(clientManager);
+			}
+		}
+		logger.info("Server shutdown");
 	}
 }

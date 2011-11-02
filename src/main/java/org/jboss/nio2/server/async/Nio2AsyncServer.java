@@ -60,11 +60,24 @@ public class Nio2AsyncServer {
 	 */
 	public static void main(String[] args) throws Exception {
 
+		logger.log(Level.INFO, "Starting Asynchronous Sever...");
+		int port = SERVER_PORT;
+		if (args.length > 0) {
+			try {
+				port = Integer.valueOf(args[0]);
+			} catch (NumberFormatException e) {
+				logger.log(Level.SEVERE, e.getMessage(), e);
+			}
+		}
+
 		ExecutorService pool = Executors.newFixedThreadPool(200);
-		//AsynchronousChannelGroup threadGroup = AsynchronousChannelGroup.withThreadPool(pool);
-		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open().bind(new InetSocketAddress(SERVER_PORT));
+		// AsynchronousChannelGroup threadGroup =
+		// AsynchronousChannelGroup.withThreadPool(pool);
+		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open()
+				.bind(new InetSocketAddress(port));
 
 		boolean running = true;
+		logger.log(Level.INFO, "Asynchronous Sever started...");
 
 		while (running) {
 			// server.accept(null, new CompletionHandlerImpl());

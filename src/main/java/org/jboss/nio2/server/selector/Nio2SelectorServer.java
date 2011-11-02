@@ -44,7 +44,7 @@ import org.jboss.nio2.server.SessionGenerator;
  */
 public class Nio2SelectorServer {
 
-	public static final int SERVER_PORT[] = { 8000, 8001, 8002 };
+	public static final int SERVER_PORTS[] = { 8000, 8001, 8002 };
 	private static final Logger logger = Logger.getLogger(Nio2SelectorServer.class.getName());
 	private static final ExecutorService executor = Executors.newFixedThreadPool(200);
 
@@ -85,11 +85,11 @@ public class Nio2SelectorServer {
 	public static void main(String[] args) throws Exception {
 
 		Selector selector = Selector.open();
-		ServerSocketChannel channels[] = new ServerSocketChannel[SERVER_PORT.length];
-		for (int i = 0; i < SERVER_PORT.length; i++) {
+		ServerSocketChannel channels[] = new ServerSocketChannel[SERVER_PORTS.length];
+		for (int i = 0; i < SERVER_PORTS.length; i++) {
 			channels[i] = ServerSocketChannel.open();
 			channels[i].configureBlocking(false);
-			channels[i].socket().bind(new InetSocketAddress(SERVER_PORT[i]));
+			channels[i].socket().bind(new InetSocketAddress(SERVER_PORTS[i]));
 			channels[i].register(selector, channels[i].validOps());
 		}
 

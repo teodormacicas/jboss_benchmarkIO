@@ -224,7 +224,7 @@ public class Nio2SelectorClient extends Thread {
 
 		for (int i = 0; i < clients.length; i++) {
 			SocketChannel channel = SocketChannel.open(new InetSocketAddress("localhost",
-					Nio2SelectorServer.SERVER_PORT[i % Nio2SelectorServer.SERVER_PORT.length]));
+					Nio2SelectorServer.SERVER_PORTS[i % Nio2SelectorServer.SERVER_PORTS.length]));
 			clients[i] = new Nio2SelectorClient(channel, delay);
 		}
 
