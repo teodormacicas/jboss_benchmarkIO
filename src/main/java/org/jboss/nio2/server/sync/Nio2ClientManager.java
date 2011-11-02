@@ -56,7 +56,7 @@ public class Nio2ClientManager implements Runnable {
 		ByteBuffer bb = ByteBuffer.allocate(1024);
 		int count = -1;
 		try {
-			while (channel.isConnected()) {
+			while (channel.isConnected() && channel.isOpen()) {
 				bb.clear();
 				count = channel.read(bb);
 				bb.flip();
@@ -65,7 +65,7 @@ public class Nio2ClientManager implements Runnable {
 				bb.get(bytes);
 				System.out.println("[" + this.sessionId + "] " + new String(bytes));
 				bb.clear();
-				bb.put("Pong from server\n".getBytes());
+				bb.put(("[" + this.sessionId + "] Pong from server\n").getBytes());
 				bb.flip();
 				channel.write(bb);
 			}
@@ -78,6 +78,7 @@ public class Nio2ClientManager implements Runnable {
 				logger.log(Level.SEVERE, "ERROR from server side", ex);
 			}
 		}
+		logger.log(Level.INFO, "Client Manager shutdown");
 	}
 
 	/**

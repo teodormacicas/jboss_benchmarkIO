@@ -56,7 +56,7 @@ public class Nio2SelectorClientManager implements Runnable {
 		ByteBuffer bb = ByteBuffer.allocate(1024);
 		int count = -1;
 		try {
-			while (channel.isConnected()) {
+			while (channel.isConnected() && channel.isOpen()) {
 				bb.clear();
 				count = channel.read(bb);
 				bb.flip();

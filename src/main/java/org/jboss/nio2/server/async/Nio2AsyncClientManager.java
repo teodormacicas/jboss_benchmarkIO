@@ -64,7 +64,6 @@ public class Nio2AsyncClientManager implements Runnable {
 				bb.clear();
 				Future<Integer> count = channel.read(bb);
 				bb.flip();
-
 				byte bytes[] = new byte[count.get()];
 				bb.get(bytes);
 				System.out.println("[" + this.sessionId + "]" + new String(bytes));
