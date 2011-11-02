@@ -53,7 +53,7 @@ public class Nio2AsyncClient extends Thread {
 	private ByteBuffer byteBuffer;
 
 	/**
-	 * Create a new instance of @ Nio2AsyncClient}
+	 * Create a new instance of {@code Nio2AsyncClient}
 	 * 
 	 * @param channel
 	 * @param delay
@@ -68,9 +68,10 @@ public class Nio2AsyncClient extends Thread {
 	public void run() {
 
 		try {
+			this.byteBuffer = ByteBuffer.allocate(1024);
+			init();
 			// wait for 2 seconds until all threads are ready
 			sleep(2 * DEFAULT_DELAY);
-			this.byteBuffer = ByteBuffer.allocate(1024);
 			runit();
 		} catch (Exception exp) {
 			System.err.println("Exception: " + exp.getMessage());
@@ -104,6 +105,17 @@ public class Nio2AsyncClient extends Thread {
 		 * try { channel.close(); } catch (IOException e) { e.printStackTrace();
 		 * }
 		 */
+	}
+
+	/**
+	 * 
+	 * @throws Exception
+	 */
+	protected void init() throws Exception {
+		System.out.println("Initializing communication...");
+		write("Ping from client " + getId() + "\n");
+		String response = read();
+		System.out.println("Communication intialized -> " + response);
 	}
 
 	/**

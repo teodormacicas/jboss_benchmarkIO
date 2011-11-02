@@ -49,7 +49,7 @@ public class Nio2AsyncServer {
 	private static final Logger logger = Logger.getLogger(Nio2AsyncServer.class.getName());
 
 	/**
-	 * Create a new instance of @ NioAsyncServer}
+	 * Create a new instance of {@code Nio2AsyncServer}
 	 */
 	public Nio2AsyncServer() {
 		super();

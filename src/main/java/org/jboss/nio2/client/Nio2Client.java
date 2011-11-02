@@ -52,7 +52,7 @@ public class Nio2Client extends Thread {
 	private ByteBuffer byteBuffer;
 
 	/**
-	 * Create a new instance of @ Nio2Client}
+	 * Create a new instance of {@code Nio2Client}
 	 * 
 	 * @param hostname
 	 * @param port
@@ -67,7 +67,7 @@ public class Nio2Client extends Thread {
 	}
 
 	/**
-	 * Create a new instance of @ Nio2Client}
+	 * Create a new instance of {@code Nio2Client}
 	 * 
 	 * @param hostname
 	 * @param port
@@ -79,13 +79,15 @@ public class Nio2Client extends Thread {
 
 	@Override
 	public void run() {
-
 		try {
-			// wait for 2 seconds until all threads are ready
-			sleep(2 * DEFAULT_DELAY);
+			// Open connection with server
 			SocketAddress socketAddress = new InetSocketAddress(this.hostname, this.port);
 			this.channel = SocketChannel.open(socketAddress);
+			// Allocate byte buffer for read/write data
 			this.byteBuffer = ByteBuffer.allocate(1024);
+			// wait for 2 seconds until all threads are ready
+			init();
+			sleep(2 * DEFAULT_DELAY);
 			runit();
 		} catch (Exception exp) {
 			System.err.println("Exception: " + exp.getMessage());
@@ -114,6 +116,17 @@ public class Nio2Client extends Thread {
 		 * System.out.println("Received from server : " + new String(bytes)); }
 		 * bb.clear(); } catch (Exception ex) { ex.printStackTrace(); } }
 		 */
+	}
+
+	/**
+	 * 
+	 * @throws Exception
+	 */
+	protected void init() throws Exception {
+		System.out.println("Initializing communication...");
+		write("Ping from client " + getId() + "\n");
+		String response = read();
+		System.out.println("Communication intialized -> " + response);
 	}
 
 	/**

@@ -50,7 +50,7 @@ public class Nio2SelectorClient extends Thread {
 	private ByteBuffer byteBuffer;
 
 	/**
-	 * Create a new instance of @ Nio2SelectorClient}
+	 * Create a new instance of {@code Nio2SelectorClient}
 	 * 
 	 * @param channel
 	 * @param delay
@@ -63,11 +63,12 @@ public class Nio2SelectorClient extends Thread {
 
 	@Override
 	public void run() {
-
 		try {
+			// Allocate byte buffer for read/write data
+			this.byteBuffer = ByteBuffer.allocate(1024);
+			init();
 			// wait for 2 seconds until all threads are ready
 			sleep(2 * DEFAULT_DELAY);
-			this.byteBuffer = ByteBuffer.allocate(1024);
 			runit();
 		} catch (Exception exp) {
 			System.err.println("Exception: " + exp.getMessage());
@@ -80,6 +81,17 @@ public class Nio2SelectorClient extends Thread {
 				System.err.println("Exception: " + ioex.getMessage());
 			}
 		}
+	}
+
+	/**
+	 * 
+	 * @throws Exception
+	 */
+	protected void init() throws Exception {
+		System.out.println("Initializing communication...");
+		write("Ping from client " + getId() + "\n");
+		String response = read();
+		System.out.println("Communication intialized -> " + response);
 	}
 
 	/**

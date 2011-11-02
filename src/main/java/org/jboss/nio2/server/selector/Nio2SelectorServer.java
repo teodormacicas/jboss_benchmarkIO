@@ -33,8 +33,6 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.PostConstruct;
-
 import org.jboss.nio2.server.SessionGenerator;
 
 /**
@@ -51,7 +49,7 @@ public class Nio2SelectorServer {
 	private static final ExecutorService executor = Executors.newFixedThreadPool(200);
 
 	/**
-	 * Create a new instance of @ Nio2SelectorServer}
+	 * Create a new instance of {@code Nio2SelectorServer}
 	 * 
 	 * @throws IOException
 	 */

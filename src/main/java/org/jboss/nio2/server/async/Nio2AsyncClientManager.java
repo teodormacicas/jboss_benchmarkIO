@@ -42,7 +42,9 @@ public class Nio2AsyncClientManager implements Runnable {
 	private String sessionId;
 
 	/**
-	 * Create a new instance of @ NioAsyncClientManager}
+	 * Create a new instance of {@code Nio2AsyncClientManager}
+	 * 
+	 * @param socket
 	 */
 	public Nio2AsyncClientManager(AsynchronousSocketChannel socket) {
 		this.channel = socket;

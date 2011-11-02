@@ -33,7 +33,7 @@ import java.util.UUID;
 public class SessionGenerator {
 
 	/**
-	 * Create a new instance of @ SessionGenerator}
+	 * Create a new instance of {@code SessionGenerator}
 	 */
 	public SessionGenerator() {
 		super();
