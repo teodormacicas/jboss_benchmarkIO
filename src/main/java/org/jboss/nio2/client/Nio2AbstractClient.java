@@ -105,9 +105,11 @@ public abstract class Nio2AbstractClient extends Thread {
 	 * @throws Exception
 	 */
 	protected void init() throws Exception {
+		System.out.println("Establish connection to server");
 		// Connect to the server
-		SocketAddress socketAddress = new InetSocketAddress(this.getHostname(), this.getPort());
+		SocketAddress socketAddress = new InetSocketAddress(this.hostname, this.port);
 		this.connect(socketAddress);
+		System.out.println("Connection to server established");
 		// Allocate byte buffer for read/write data
 		this.byteBuffer = ByteBuffer.allocate(1024);
 		System.out.println("Initializing communication...");
@@ -211,44 +213,8 @@ public abstract class Nio2AbstractClient extends Thread {
 	}
 
 	/**
-	 * Getter for hostname
-	 *
-	 * @return the hostname
-	 */
-	public String getHostname() {
-		return this.hostname;
-	}
-
-	/**
-	 * Setter for the hostname
-	 *
-	 * @param hostname the hostname to set
-	 */
-	public void setHostname(String hostname) {
-		this.hostname = hostname;
-	}
-
-	/**
-	 * Getter for port
-	 *
-	 * @return the port
-	 */
-	public int getPort() {
-		return this.port;
-	}
-
-	/**
-	 * Setter for the port
-	 *
-	 * @param port the port to set
-	 */
-	public void setPort(int port) {
-		this.port = port;
-	}
-
-	/**
 	 * Getter for sessionId
-	 *
+	 * 
 	 * @return the sessionId
 	 */
 	public String getSessionId() {
@@ -257,8 +223,9 @@ public abstract class Nio2AbstractClient extends Thread {
 
 	/**
 	 * Setter for the sessionId
-	 *
-	 * @param sessionId the sessionId to set
+	 * 
+	 * @param sessionId
+	 *            the sessionId to set
 	 */
 	public void setSessionId(String sessionId) {
 		this.sessionId = sessionId;
@@ -266,7 +233,7 @@ public abstract class Nio2AbstractClient extends Thread {
 
 	/**
 	 * Getter for byteBuffer
-	 *
+	 * 
 	 * @return the byteBuffer
 	 */
 	public ByteBuffer getByteBuffer() {
