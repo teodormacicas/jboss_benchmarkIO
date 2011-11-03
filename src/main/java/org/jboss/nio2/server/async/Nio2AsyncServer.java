@@ -29,6 +29,7 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -69,7 +70,7 @@ public class Nio2AsyncServer {
 		}
 
 		logger.log(Level.INFO, "Starting NIO2 Synchronous Sever on port {0} ...", port);
-		final ExecutorService pool = Executors.newFixedThreadPool(400);
+		ExecutorService pool = Executors.newFixedThreadPool(400);
 		// AsynchronousChannelGroup threadGroup =
 		// AsynchronousChannelGroup.withThreadPool(pool);
 		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open()
@@ -79,36 +80,12 @@ public class Nio2AsyncServer {
 		logger.log(Level.INFO, "Asynchronous Sever started...");
 
 		while (running) {
+			logger.info("Waiting for new connections...");
 			// server.accept(null, new CompletionHandlerImpl());
-			//Future<AsynchronousSocketChannel> future = listener.accept();
-			logger.info("Waiting for new connection...");
-			listener.accept(null, new CompletionHandler<AsynchronousSocketChannel, Void>() {
-
-				@Override
-				public void completed(AsynchronousSocketChannel channel, Void attachment) {
-					try {
-					Nio2AsyncClientManager manager = new Nio2AsyncClientManager(channel);
-					manager.setSessionId(SessionGenerator.generateId());
-					pool.execute(manager);
-					logger.info("Waiting for new connection...");
-					listener.accept(attachment, this);
-					} catch(Exception e) {
-						logger.log(Level.SEVERE, e.getMessage(), e);
-					}
-				}
-
-				@Override
-				public void failed(Throwable exc, Void attachment) {
-
-				}
-			});
-
-			/*
-			 * Nio2AsyncClientManager manager = new
-			 * Nio2AsyncClientManager(future.get());
-			 * manager.setSessionId(SessionGenerator.generateId());
-			 * pool.execute(manager);
-			 */
+			Future<AsynchronousSocketChannel> future = listener.accept();
+			Nio2AsyncClientManager manager = new Nio2AsyncClientManager(future.get());
+			manager.setSessionId(SessionGenerator.generateId());
+			pool.execute(manager);
 		}
 
 		listener.close();
