@@ -21,12 +21,6 @@
  */
 package org.jboss.nio2.client;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.util.Random;
 
 /**
  * {@code Nio2Client}
@@ -36,21 +30,7 @@ import java.util.Random;
  * 
  * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
  */
-public class Nio2Client extends Thread {
-
-	public static final int MAX = 1000;
-	public static final int N_THREADS = 100;
-	public static final int DEFAULT_DELAY = 1000; // default wait delay 1000ms
-	private long max_time = Long.MIN_VALUE;
-	private long min_time = Long.MAX_VALUE;
-	private double avg_time = 0;
-	private String hostname;
-	private int port;
-	private int max;
-	private int delay;
-	private SocketChannel channel;
-	private ByteBuffer byteBuffer;
-	private String sessionId;
+public class Nio2Client extends Nio2AbstractClient {
 
 	/**
 	 * Create a new instance of {@code Nio2Client}
@@ -61,10 +41,7 @@ public class Nio2Client extends Thread {
 	 * @param delay
 	 */
 	public Nio2Client(String hostname, int port, int d_max, int delay) {
-		this.hostname = hostname;
-		this.port = port;
-		this.max = d_max;
-		this.delay = delay;
+		super(hostname, port, d_max, delay);
 	}
 
 	/**
@@ -76,143 +53,6 @@ public class Nio2Client extends Thread {
 	 */
 	public Nio2Client(String hostname, int port, int delay) {
 		this(hostname, port, 55 * 1000 / delay, delay);
-	}
-
-	@Override
-	public void run() {
-		try {
-			// Open connection with server
-			SocketAddress socketAddress = new InetSocketAddress(this.hostname, this.port);
-			this.channel = SocketChannel.open(socketAddress);
-			// Allocate byte buffer for read/write data
-			this.byteBuffer = ByteBuffer.allocate(1024);
-			// wait for 2 seconds until all threads are ready
-			init();
-			sleep(2 * DEFAULT_DELAY);
-			runit();
-		} catch (Exception exp) {
-			System.err.println("Exception: " + exp.getMessage());
-		} finally {
-			System.out.println("[Thread-" + getId() + "] terminated -> "
-					+ System.currentTimeMillis());
-			try {
-				close();
-			} catch (IOException ioex) {
-				System.err.println("Exception: " + ioex.getMessage());
-			}
-		}
-
-		/*
-		 * Random random = new Random(); long delay = 1000 +
-		 * random.nextInt(1000); int max = 10 + random.nextInt(20); ByteBuffer
-		 * bb = ByteBuffer.allocate(1024);
-		 * 
-		 * System.out.println("[Thread-" + getId() +
-		 * "] Running client with max = " + max + ", delay = " + delay);
-		 * 
-		 * while ((max--) > 0) { try { sleep(delay); bb.put(("Ping from client "
-		 * + getId()).getBytes()); bb.flip(); channel.write(bb); bb.clear(); int
-		 * count = channel.read(bb); if (count > 0) { bb.flip(); byte[] bytes =
-		 * new byte[count]; bb.get(bytes);
-		 * System.out.println("Received from server : " + new String(bytes)); }
-		 * bb.clear(); } catch (Exception ex) { ex.printStackTrace(); } }
-		 */
-	}
-
-	/**
-	 * 
-	 * @throws Exception
-	 */
-	protected void init() throws Exception {
-		System.out.println("Initializing communication...");
-		write("POST /session-" + getId());
-		String response = read();
-		String tab[] = response.split("\\s+");
-		this.sessionId = tab[1];
-		System.out.println("Communication intialized -> Session ID:" + this.sessionId);
-	}
-
-	/**
-	 * 
-	 * @throws Exception
-	 */
-	public void runit() throws Exception {
-		// Wait a delay to ensure that all threads are ready
-		Random random = new Random();
-
-		sleep(DEFAULT_DELAY + random.nextInt(300));
-		long time = 0;
-		String response = null;
-		int counter = 0;
-
-		int min_count = 10 * 1000 / delay;
-		int max_count = 50 * 1000 / delay;
-		while ((this.max--) > 0) {
-			sleep(this.delay);
-			time = System.currentTimeMillis();
-			write("Ping from client " + getId() + "\n");
-			response = read();
-			time = System.currentTimeMillis() - time;
-			System.out.println("Received from server -> " + response);
-			// update the maximum response time
-			if (time > max_time) {
-				max_time = time;
-			}
-			// update the minimum response time
-			if (time < min_time) {
-				min_time = time;
-			}
-			// update the average response time
-			if (counter >= min_count && counter <= max_count) {
-				avg_time += time;
-			}
-			counter++;
-		}
-
-		avg_time /= (max_count - min_count + 1);
-		// For each thread print out the maximum, minimum and average response
-		// times
-		System.out.println(max_time + " \t " + min_time + " \t " + avg_time);
-	}
-
-	/**
-	 * 
-	 * @param data
-	 * @throws IOException
-	 */
-	private void write(String data) throws IOException {
-		if (data != null) {
-			this.byteBuffer.clear();
-			this.byteBuffer.put(data.getBytes());
-			this.byteBuffer.flip();
-			channel.write(this.byteBuffer);
-		}
-	}
-
-	/**
-	 * 
-	 * @return
-	 * @throws IOException
-	 */
-	private String read() throws IOException {
-		this.byteBuffer.clear();
-		int count = channel.read(this.byteBuffer);
-		if (count > 0) {
-			this.byteBuffer.flip();
-			byte[] bytes = new byte[count];
-			this.byteBuffer.get(bytes);
-			return new String(bytes);
-		}
-
-		return null;
-	}
-
-	/**
-	 * 
-	 * @throws Exception
-	 */
-	public void close() throws IOException {
-		this.channel.close();
 	}
 
 	/**
@@ -234,7 +74,7 @@ public class Nio2Client extends Thread {
 
 		String hostname = args[0];
 		int port = Integer.parseInt(args[1]);
-		int n = 100, max = 1000, delay = DEFAULT_DELAY;
+		int n = 100, delay = DEFAULT_DELAY;
 		if (args.length > 2) {
 			try {
 				n = Integer.parseInt(args[2]);
@@ -259,10 +99,10 @@ public class Nio2Client extends Thread {
 		System.out.println("\tHostname: " + hostname);
 		System.out.println("\tPort: " + port);
 		System.out.println("\tn: " + n);
-		System.out.println("\tmax: " + max);
 		System.out.println("\tdelay: " + delay);
 
 		Nio2Client clients[] = new Nio2Client[n];
+		
 		for (int i = 0; i < clients.length; i++) {
 			clients[i] = new Nio2Client(hostname, port, delay);
 		}

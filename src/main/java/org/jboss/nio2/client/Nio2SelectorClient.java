@@ -21,160 +21,38 @@
  */
 package org.jboss.nio2.client;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.util.Random;
-
 import org.jboss.nio2.server.selector.Nio2SelectorServer;
 
 /**
- * {@code Nio2SelectorClient}
+ * {@code Nio2SelectorClient
  * 
  * Created on Oct 28, 2011 at 10:02:07 AM
  * 
  * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
  */
-public class Nio2SelectorClient extends Thread {
-
-	public static final int MAX = 1000;
-	public static final int N_THREADS = 100;
-	public static final int DEFAULT_DELAY = 1000; // default wait delay 1000ms
-	private long max_time = Long.MIN_VALUE;
-	private long min_time = Long.MAX_VALUE;
-	private double avg_time = 0;
-	private int max;
-	private int delay;
-	private SocketChannel channel;
-	private ByteBuffer byteBuffer;
+public class Nio2SelectorClient extends Nio2AbstractClient {
 
 	/**
 	 * Create a new instance of {@code Nio2SelectorClient}
 	 * 
-	 * @param channel
+	 * @param hostname
+	 * @param port
+	 * @param d_max
 	 * @param delay
 	 */
-	public Nio2SelectorClient(SocketChannel channel, int delay) {
-		this.channel = channel;
-		this.delay = delay;
-		this.max = 55 * 1000 / delay;
-	}
-
-	@Override
-	public void run() {
-		try {
-			// Allocate byte buffer for read/write data
-			this.byteBuffer = ByteBuffer.allocate(1024);
-			init();
-			// wait for 2 seconds until all threads are ready
-			sleep(2 * DEFAULT_DELAY);
-			runit();
-		} catch (Exception exp) {
-			System.err.println("Exception: " + exp.getMessage());
-		} finally {
-			System.out.println("[Thread-" + getId() + "] terminated -> "
-					+ System.currentTimeMillis());
-			try {
-				close();
-			} catch (IOException ioex) {
-				System.err.println("Exception: " + ioex.getMessage());
-			}
-		}
+	public Nio2SelectorClient(String hostname, int port, int d_max, int delay) {
+		super(hostname, port, d_max, delay);
 	}
 
 	/**
+	 * Create a new instance of {@code Nio2SelectorClient}
 	 * 
-	 * @throws Exception
+	 * @param hostname
+	 * @param port
+	 * @param delay
 	 */
-	protected void init() throws Exception {
-		System.out.println("Initializing communication...");
-		write("Ping from client " + getId() + "\n");
-		String response = read();
-		System.out.println("Communication intialized -> " + response);
-	}
-
-	/**
-	 * 
-	 * @throws Exception
-	 */
-	public void runit() throws Exception {
-		// Wait a delay to ensure that all threads are ready
-		Random random = new Random();
-
-		sleep(DEFAULT_DELAY + random.nextInt(300));
-		long time = 0;
-		String response = null;
-		int counter = 0;
-
-		int min_count = 10 * 1000 / delay;
-		int max_count = 50 * 1000 / delay;
-		while ((this.max--) > 0) {
-			sleep(this.delay);
-			time = System.currentTimeMillis();
-			write("Ping from client " + getId() + "\n");
-			response = read();
-			time = System.currentTimeMillis() - time;
-			System.out.println("Received from server -> " + response);
-			// update the maximum response time
-			if (time > max_time) {
-				max_time = time;
-			}
-			// update the minimum response time
-			if (time < min_time) {
-				min_time = time;
-			}
-			// update the average response time
-			if (counter >= min_count && counter <= max_count) {
-				avg_time += time;
-			}
-			counter++;
-		}
-
-		avg_time /= (max_count - min_count + 1);
-		// For each thread print out the maximum, minimum and average response
-		// times
-		System.out.println(max_time + " \t " + min_time + " \t " + avg_time);
-	}
-
-	/**
-	 * 
-	 * @param data
-	 * @throws IOException
-	 */
-	private void write(String data) throws IOException {
-		if (data != null) {
-			this.byteBuffer.clear();
-			this.byteBuffer.put(data.getBytes());
-			this.byteBuffer.flip();
-			channel.write(this.byteBuffer);
-		}
-	}
-
-	/**
-	 * 
-	 * @return
-	 * @throws IOException
-	 */
-	private String read() throws IOException {
-		this.byteBuffer.clear();
-		int count = channel.read(this.byteBuffer);
-		if (count > 0) {
-			this.byteBuffer.flip();
-			byte[] bytes = new byte[count];
-			this.byteBuffer.get(bytes);
-			return new String(bytes);
-		}
-
-		return null;
-	}
-
-	/**
-	 * 
-	 * @throws Exception
-	 */
-	public void close() throws IOException {
-		this.channel.close();
+	public Nio2SelectorClient(String hostname, int port, int delay) {
+		this(hostname, port, 55 * 1000 / delay, delay);
 	}
 
 	/**
@@ -223,9 +101,8 @@ public class Nio2SelectorClient extends Thread {
 		Nio2SelectorClient clients[] = new Nio2SelectorClient[10];
 
 		for (int i = 0; i < clients.length; i++) {
-			SocketChannel channel = SocketChannel.open(new InetSocketAddress("localhost",
-					Nio2SelectorServer.SERVER_PORTS[i % Nio2SelectorServer.SERVER_PORTS.length]));
-			clients[i] = new Nio2SelectorClient(channel, delay);
+			int port = Nio2SelectorServer.SERVER_PORTS[i % Nio2SelectorServer.SERVER_PORTS.length];
+			clients[i] = new Nio2SelectorClient(hostname, port, delay);
 		}
 
 		for (int i = 0; i < clients.length; i++) {
@@ -236,5 +113,4 @@ public class Nio2SelectorClient extends Thread {
 			clients[i].join();
 		}
 	}
-
 }

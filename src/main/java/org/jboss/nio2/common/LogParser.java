@@ -36,11 +36,6 @@ import java.io.InputStreamReader;
 public class LogParser {
 
 	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-
-	/**
 	 * Create a new instance of {@code LogParser}
 	 */
 	public LogParser() {
@@ -91,7 +86,7 @@ public class LogParser {
 	 */
 	public static void main(String args[]) throws Exception {
 		if (args.length < 1) {
-			System.err.println("Usage: java " + LogParser.class.getName() + " fileName");
+			System.err.println("Usage: java " + LogParser.class.getName() + " filename");
 			System.exit(1);
 		}
 
