@@ -21,6 +21,7 @@
  */
 package org.jboss.nio2.client;
 
+import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.Future;
@@ -92,6 +93,15 @@ public class Nio2AsyncClient extends Nio2AbstractClient {
 		}
 
 		return null;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.jboss.nio2.client.Nio2AbstractClient#writeToChannel()
+	 */
+	protected void writeToChannel() throws IOException {
+		this.channel.write(this.getByteBuffer());
 	}
 
 	/**

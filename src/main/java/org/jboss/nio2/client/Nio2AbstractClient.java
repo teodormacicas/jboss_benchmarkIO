@@ -182,8 +182,16 @@ public abstract class Nio2AbstractClient extends Thread {
 			this.byteBuffer.clear();
 			this.byteBuffer.put(data.getBytes());
 			this.byteBuffer.flip();
-			this.channel.write(this.byteBuffer);
+			this.writeToChannel();
 		}
+	}
+
+	/**
+	 * 
+	 * @throws IOException
+	 */
+	protected void writeToChannel() throws IOException {
+		this.channel.write(this.byteBuffer);
 	}
 
 	/**
