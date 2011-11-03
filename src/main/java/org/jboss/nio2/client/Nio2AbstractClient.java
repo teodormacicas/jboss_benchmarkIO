@@ -87,6 +87,7 @@ public abstract class Nio2AbstractClient extends Thread {
 			runit();
 		} catch (Exception exp) {
 			System.err.println("Exception: " + exp.getMessage());
+			exp.printStackTrace();
 		} finally {
 			System.out.println("[Thread-" + getId() + "] terminated -> "
 					+ System.currentTimeMillis());
@@ -94,6 +95,7 @@ public abstract class Nio2AbstractClient extends Thread {
 				close();
 			} catch (IOException ioex) {
 				System.err.println("Exception: " + ioex.getMessage());
+				ioex.printStackTrace();
 			}
 		}
 	}
