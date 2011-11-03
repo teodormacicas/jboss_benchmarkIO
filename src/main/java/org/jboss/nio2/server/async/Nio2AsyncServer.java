@@ -60,7 +60,6 @@ public class Nio2AsyncServer {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		logger.log(Level.INFO, "Starting Asynchronous Sever...");
 		int port = SERVER_PORT;
 		if (args.length > 0) {
 			try {
@@ -70,6 +69,7 @@ public class Nio2AsyncServer {
 			}
 		}
 
+		logger.log(Level.INFO, "Starting NIO2 Synchronous Sever on port {0} ...", port);
 		ExecutorService pool = Executors.newFixedThreadPool(400);
 		// AsynchronousChannelGroup threadGroup =
 		// AsynchronousChannelGroup.withThreadPool(pool);
