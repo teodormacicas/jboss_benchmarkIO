@@ -86,11 +86,15 @@ public class Nio2AsyncServer {
 
 				@Override
 				public void completed(AsynchronousSocketChannel channel, Void attachment) {
+					try {
 					Nio2AsyncClientManager manager = new Nio2AsyncClientManager(channel);
 					manager.setSessionId(SessionGenerator.generateId());
 					pool.execute(manager);
 					logger.info("Waiting for new connection...");
 					listener.accept(attachment, this);
+					} catch(Exception e) {
+						logger.log(Level.SEVERE, e.getMessage(), e);
+					}
 				}
 
 				@Override
