@@ -104,6 +104,15 @@ public class Nio2AsyncClient extends Nio2AbstractClient {
 		this.channel.write(this.getByteBuffer());
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.jboss.nio2.client.Nio2AbstractClient#close()
+	 */
+	public void close() throws IOException {
+		this.channel.close();
+	}
+
 	/**
 	 * 
 	 * @param args
