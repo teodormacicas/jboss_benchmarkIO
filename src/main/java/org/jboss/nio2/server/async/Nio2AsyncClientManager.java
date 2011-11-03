@@ -58,20 +58,29 @@ public class Nio2AsyncClientManager implements Runnable {
 	@Override
 	public void run() {
 		ByteBuffer bb = ByteBuffer.allocate(1024);
-
+		boolean initialized = false;
+		String response = null;
 		try {
-			while (channel.isOpen()) {
+			do {
 				bb.clear();
 				Future<Integer> count = channel.read(bb);
 				bb.flip();
 				byte bytes[] = new byte[count.get()];
 				bb.get(bytes);
-				System.out.println("[" + this.sessionId + "]" + new String(bytes));
+				System.out.println("[" + this.sessionId + "] " + new String(bytes));
+
+				if (!initialized) {
+					initialized = true;
+					response = "jSessionId: " + this.sessionId;
+				} else {
+					response = "[" + this.sessionId + "] Pong from server";
+				}
+
 				bb.clear();
-				bb.put("Pong from server".getBytes());
+				bb.put(response.getBytes());
 				bb.flip();
 				channel.write(bb);
-			}
+			} while (channel.isOpen());
 		} catch (Exception exp) {
 			logger.log(Level.SEVERE, "ERROR from client side");
 		} finally {
@@ -81,6 +90,7 @@ public class Nio2AsyncClientManager implements Runnable {
 				logger.log(Level.SEVERE, "ERROR from server side", ex);
 			}
 		}
+		logger.log(Level.INFO, "Client Manager shutdown");
 	}
 
 	/**
