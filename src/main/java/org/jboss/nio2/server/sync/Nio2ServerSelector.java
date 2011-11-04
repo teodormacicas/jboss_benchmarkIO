@@ -95,6 +95,7 @@ public class Nio2ServerSelector {
 							String ip_port = socketAddress.getHostName() + ":"
 									+ socketAddress.getPort();
 							CONNECTIONS.put(ip_port, sessionId);
+							channel.configureBlocking(false);
 							channel.register(selector, channel.validOps());
 						}
 					} catch (Exception exp) {
@@ -109,6 +110,7 @@ public class Nio2ServerSelector {
 		logger.info("Server started successfully...");
 		logger.info("Open the channel selector...");
 		selector = Selector.open();
+		selector.
 		while (selector.isOpen()) {
 			logger.log(Level.INFO, "Waiting for new connections...");
 
