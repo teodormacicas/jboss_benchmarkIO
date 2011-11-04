@@ -79,6 +79,7 @@ public class Nio2ServerSelector {
 		final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open().bind(
 				new InetSocketAddress(port));
 
+		// Create a separate thread for the listen server channel
 		Thread serverThread = new Thread() {
 			public void run() {
 				boolean running = true;
@@ -106,7 +107,8 @@ public class Nio2ServerSelector {
 		// Starting the server thread
 		serverThread.start();
 		logger.info("Server started successfully...");
-
+		logger.info("Open the channel selector...");
+		selector = Selector.open();
 		while (selector.isOpen()) {
 			logger.log(Level.INFO, "Waiting for new connections...");
 
