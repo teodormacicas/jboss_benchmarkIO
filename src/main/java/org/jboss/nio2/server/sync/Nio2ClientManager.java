@@ -69,9 +69,9 @@ public class Nio2ClientManager implements Runnable {
 
 				if (!initialized) {
 					initialized = true;
-					response = "jSessionId: " + this.sessionId;
+					response = "jSessionId: " + this.sessionId + "\n";
 				} else {
-					response = "[" + this.sessionId + "] Pong from server";
+					response = "[" + this.sessionId + "] Pong from server\n";
 				}
 
 				bb.clear();

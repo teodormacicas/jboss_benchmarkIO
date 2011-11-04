@@ -41,7 +41,7 @@ printf "\tNumber of clients: $n\n";
 printf "\tDelay: $delay\n";
 printf "\n\t->Log file: $filename\n";
 
-mvn exec:java -Dexec.mainClass="org.jboss.nio2.client.JioClient" -Dexec.args="$host $port $n $delay" > $log_file
+mvn exec:java -Dexec.mainClass="org.jboss.nio2.client.Nio2AsyncClient" -Dexec.args="$host $port $n $delay" > $log_file
 
 printf "max \t min \t avg\n" > $filename
 cat $log_file | egrep -v '[a-zA-Z]|^\s*$' >> $filename
