@@ -78,7 +78,7 @@ public class Nio2ServerSelector {
 		logger.info("Open the channel selector...");
 		// Open the selector
 		selector = Selector.open();
-		logger.info("Starting NIO2 Synchronous Sever on port " + port + " ...");
+		selector.logger.info("Starting NIO2 Synchronous Sever on port " + port + " ...");
 		final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open().bind(
 				new InetSocketAddress(port));
 		// Create a separate thread for the listen server channel
@@ -94,13 +94,14 @@ public class Nio2ServerSelector {
 							String sessionId = SessionGenerator.generateId();
 							InetSocketAddress socketAddress = (InetSocketAddress) channel
 									.getRemoteAddress();
-							String ip_port = socketAddress.getHostName() + ":"
+							String hostname_port = socketAddress.getHostName() + ":"
 									+ socketAddress.getPort();
-							CONNECTIONS.put(ip_port, sessionId);
+							CONNECTIONS.put(hostname_port, sessionId);
 							channel.configureBlocking(false);
-							logger.info("Registering the new connection [" + ip_port + "]");
+							logger.info("Registering the new connection [" + hostname_port + "]");
 							channel.register(selector, channel.validOps());
-							logger.info("The new connection [" + ip_port + "] has been registered");
+							logger.info("The new connection [" + hostname_port
+									+ "] has been registered");
 						}
 					} catch (Exception exp) {
 						logger.log(Level.SEVERE, exp.getMessage(), exp);
@@ -113,34 +114,36 @@ public class Nio2ServerSelector {
 		// Starting the server thread
 		serverThread.start();
 		logger.info("Server started successfully...");
-
+		int count = -1;
 		while (true) {
 			logger.log(Level.INFO, "Waiting for new events ...");
 			try {
 				// Wait for an event
-				selector.select();
+				count = selector.selectNow();
 			} catch (Exception e) {
 				// Handle error with selector
 				logger.log(Level.SEVERE, e.getMessage(), e);
 				break;
 			}
 
-			// Get list of selection keys with pending events
-			Iterator<SelectionKey> it = selector.selectedKeys().iterator();
+			if (count > 0) {
+				// Get list of selection keys with pending events
+				Iterator<SelectionKey> it = selector.selectedKeys().iterator();
 
-			// Process each key at a time
-			while (it.hasNext()) {
-				// Get the selection key
-				SelectionKey selKey = (SelectionKey) it.next();
-				// Remove it from the list to indicate that it is being
-				// processed
-				it.remove();
+				// Process each key at a time
+				while (it.hasNext()) {
+					// Get the selection key
+					SelectionKey selKey = (SelectionKey) it.next();
+					// Remove it from the list to indicate that it is being
+					// processed
+					it.remove();
 
-				try {
-					processSelectionKey(selKey);
-				} catch (Exception e) {
-					// Handle error with channel and unregister
-					selKey.cancel();
+					try {
+						processSelectionKey(selKey);
+					} catch (Exception e) {
+						// Handle error with channel and unregister
+						selKey.cancel();
+					}
 				}
 			}
 		}
