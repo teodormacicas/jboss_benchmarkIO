@@ -49,7 +49,7 @@ public class Nio2ServerSelector {
 	private static final Logger logger = Logger.getLogger(Nio2ServerSelector.class.getName());
 	protected static final int SERVER_PORT = 8080;
 	protected static final ConcurrentMap<String, String> CONNECTIONS = new ConcurrentHashMap<String, String>();
-	private static final ExecutorService POOL = Executors.newFixedThreadPool(400);
+	private static final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(400);
 	private static Selector selector;// = Selector.open();
 
 	/**
@@ -75,9 +75,12 @@ public class Nio2ServerSelector {
 			}
 		}
 
-		logger.log(Level.INFO, "Starting NIO2 Synchronous Sever on port {0} ...", port);
+		logger.info("Starting NIO2 Synchronous Sever on port " + port + " ...");
 		final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open().bind(
 				new InetSocketAddress(port));
+
+		logger.info("Open the channel selector...");
+		selector = Selector.open();
 
 		// Create a separate thread for the listen server channel
 		Thread serverThread = new Thread() {
@@ -103,14 +106,14 @@ public class Nio2ServerSelector {
 						running = false;
 					}
 				}
+				logger.info("The server thread is finished...");
 			}
 		};
 		// Starting the server thread
 		serverThread.start();
 		logger.info("Server started successfully...");
-		logger.info("Open the channel selector...");
-		selector = Selector.open();
-		while (selector.isOpen()) {
+
+		while (true) {
 			logger.log(Level.INFO, "Waiting for new connections...");
 
 			try {
@@ -151,7 +154,7 @@ public class Nio2ServerSelector {
 	 * @throws Exception
 	 */
 	public static void processSelectionKey(SelectionKey selKey) throws Exception {
-		if (selKey.isValid()) {
+		if (selKey.isValid() && selKey.isAcceptable()) {
 			SocketChannel channel = (SocketChannel) selKey.channel();
 			InetSocketAddress socketAddress = (InetSocketAddress) channel.getRemoteAddress();
 			String ip_port = socketAddress.getHostName() + ":" + socketAddress.getPort();
@@ -160,7 +163,7 @@ public class Nio2ServerSelector {
 			Nio2SelectorClientManager manager = new Nio2SelectorClientManager(channel);
 			manager.setSessionId(sessionId);
 			// Execute the client query
-			POOL.execute(manager);
+			THREAD_POOL.execute(manager);
 		}
 	}
 }
