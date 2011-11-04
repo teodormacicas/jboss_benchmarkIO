@@ -75,13 +75,12 @@ public class Nio2ServerSelector {
 			}
 		}
 
+		logger.info("Open the channel selector...");
+		// Open the selector
+		selector = Selector.open();
 		logger.info("Starting NIO2 Synchronous Sever on port " + port + " ...");
 		final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open().bind(
 				new InetSocketAddress(port));
-
-		logger.info("Open the channel selector...");
-		selector = Selector.open();
-
 		// Create a separate thread for the listen server channel
 		Thread serverThread = new Thread() {
 			public void run() {
@@ -99,7 +98,9 @@ public class Nio2ServerSelector {
 									+ socketAddress.getPort();
 							CONNECTIONS.put(ip_port, sessionId);
 							channel.configureBlocking(false);
+							logger.info("Registering the new connection [" + ip_port + "]");
 							channel.register(selector, channel.validOps());
+							logger.info("The new connection [" + ip_port + "] has been registered");
 						}
 					} catch (Exception exp) {
 						logger.log(Level.SEVERE, exp.getMessage(), exp);
@@ -114,8 +115,7 @@ public class Nio2ServerSelector {
 		logger.info("Server started successfully...");
 
 		while (true) {
-			logger.log(Level.INFO, "Waiting for new connections...");
-
+			logger.log(Level.INFO, "Waiting for new events ...");
 			try {
 				// Wait for an event
 				selector.select();
