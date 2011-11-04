@@ -44,7 +44,7 @@ public class SessionGenerator {
 	 * @return
 	 * @throws Exception
 	 */
-	public static String generateId() throws Exception {
+	public static String generateId() {
 		UUID uuid = UUID.randomUUID();
 		return uuid.toString();
 	}
