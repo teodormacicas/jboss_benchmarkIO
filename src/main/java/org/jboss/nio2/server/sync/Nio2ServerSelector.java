@@ -110,7 +110,6 @@ public class Nio2ServerSelector {
 		logger.info("Server started successfully...");
 		logger.info("Open the channel selector...");
 		selector = Selector.open();
-		selector.
 		while (selector.isOpen()) {
 			logger.log(Level.INFO, "Waiting for new connections...");
 
