@@ -133,47 +133,53 @@ public class Nio2AsyncServer {
 		public void run() {
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
 			while (this.channel.isOpen()) {
-				channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
+				try {
+					Future<Integer> count = channel.read(buffer);
+					if (count.get() <= 0) {
+						channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
 
-					boolean initialized = false;
-					private String response;
-					private String sessionId;
+							boolean initialized = false;
+							private String response;
+							private String sessionId;
 
-					@Override
-					public void completed(Integer nBytes, Void attachment) {
-						if (nBytes > 0) {
-							byte bytes[] = new byte[nBytes];
-							buffer.get(bytes);
-							System.out.println("[" + this.sessionId + "] " + new String(bytes));
+							@Override
+							public void completed(Integer nBytes, Void attachment) {
+								if (nBytes > 0) {
+									byte bytes[] = new byte[nBytes];
+									buffer.get(bytes);
+									System.out.println("[" + this.sessionId + "] "
+											+ new String(bytes));
 
-							if (!initialized) {
-								this.sessionId = generateId();
-								initialized = true;
-								response = "jSessionId: " + sessionId + "\n";
-							} else {
-								response = "[" + this.sessionId + "] Pong from server\n";
+									if (!initialized) {
+										this.sessionId = generateId();
+										initialized = true;
+										response = "jSessionId: " + sessionId + "\n";
+									} else {
+										response = "[" + this.sessionId + "] Pong from server\n";
+									}
+
+									buffer.clear();
+									buffer.put(response.getBytes());
+									buffer.flip();
+									channel.write(buffer);
+									buffer.clear();
+								}
 							}
 
-							buffer.clear();
-							buffer.put(response.getBytes());
-							buffer.flip();
-							channel.write(buffer);
-							buffer.clear();
-						}
+							@Override
+							public void failed(Throwable exc, Void attachment) {
+								try {
+									channel.close();
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
+							}
+						});
 					}
+				} catch (Exception exp) {
 
-					@Override
-					public void failed(Throwable exc, Void attachment) {
-						try {
-							channel.close();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					}
-				});
+				}
 			}
 		}
-
 	}
-
 }
