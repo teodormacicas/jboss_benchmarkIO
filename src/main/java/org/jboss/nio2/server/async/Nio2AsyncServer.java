@@ -71,10 +71,9 @@ public class Nio2AsyncServer {
 
 		logger.log(Level.INFO, "Starting NIO2 Synchronous Sever on port {0} ...", port);
 		ExecutorService pool = Executors.newFixedThreadPool(400);
-		AsynchronousChannelGroup threadGroup =
-		AsynchronousChannelGroup.withThreadPool(pool);
-		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open(threadGroup)
-				.bind(new InetSocketAddress(port));
+		AsynchronousChannelGroup threadGroup = AsynchronousChannelGroup.withThreadPool(pool);
+		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open(
+				threadGroup).bind(new InetSocketAddress(port));
 
 		boolean running = true;
 		logger.log(Level.INFO, "Asynchronous Sever started...");
@@ -82,10 +81,11 @@ public class Nio2AsyncServer {
 		while (running) {
 			logger.info("Waiting for new connections...");
 			listener.accept(null, new CompletionHandler<AsynchronousSocketChannel, Void>() {
+				private final ByteBuffer buffer = ByteBuffer.allocate(512);
 
 				@Override
 				public void completed(final AsynchronousSocketChannel channel, Void attachment) {
-					final ByteBuffer buffer = ByteBuffer.allocate(512);
+
 					buffer.clear();
 					channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
 						boolean initialized = false;
@@ -93,10 +93,9 @@ public class Nio2AsyncServer {
 						private String sessionId;
 
 						@Override
-						public void completed(Integer result, Void attachment) {
-							if (result > 0) {
-								System.out.println("");
-								byte bytes[] = new byte[result];
+						public void completed(Integer nBytes, Void attachment) {
+							if (nBytes > 0) {
+								byte bytes[] = new byte[nBytes];
 								buffer.get(bytes);
 								System.out.println("[" + this.sessionId + "] " + new String(bytes));
 
@@ -111,7 +110,7 @@ public class Nio2AsyncServer {
 								buffer.clear();
 								buffer.put(response.getBytes());
 								buffer.flip();
-								channel.write(buffer);								
+								channel.write(buffer);
 								buffer.clear();
 							}
 						}
