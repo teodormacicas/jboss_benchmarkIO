@@ -78,12 +78,6 @@ public class Nio2SelectorClientManager implements Runnable {
 			System.err.println("ERROR from client side -> " + exp.getMessage());
 			try {
 				System.out.println("Closing remote connection");
-				
-				InetSocketAddress socketAddress = (InetSocketAddress) channel
-						.getRemoteAddress();
-				String hostname_port = socketAddress.getHostName() + ":"
-						+ socketAddress.getPort();
-				Nio2ServerSelector.CONNECTIONS.remove(hostname_port);
 				this.channel.close();
 			} catch (IOException e) {
 				e.printStackTrace();

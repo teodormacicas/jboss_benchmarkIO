@@ -88,7 +88,7 @@ public class Nio2ServerSelector {
 		while (true) {
 			try {
 				// Wait for an event
-				count = selector.select(10);
+				count = selector.select(20);
 			} catch (Exception e) {
 				// Handle error with selector
 				System.err.println("ERROR: " + e.getMessage());
@@ -111,6 +111,8 @@ public class Nio2ServerSelector {
 					} catch (Exception e) {
 						// Handle error with channel and unregister
 						selKey.cancel();
+						System.err.println("Process selection key exception -> " + e.getMessage());
+						e.printStackTrace();
 					}
 				}
 			}
@@ -128,6 +130,7 @@ public class Nio2ServerSelector {
 
 		if (selKey.isValid()) {
 			SocketChannel channel = (SocketChannel) selKey.channel();
+
 			if (channel.isOpen() && channel.isConnected()) {
 				InetSocketAddress socketAddress = (InetSocketAddress) channel.getRemoteAddress();
 				String ip_port = socketAddress.getHostName() + ":" + socketAddress.getPort();
@@ -148,6 +151,7 @@ public class Nio2ServerSelector {
 					THREAD_POOL.execute(manager);
 				}
 			} else {
+				System.out.println("The channel of the selected key is not connected");
 				selKey.cancel();
 			}
 		}
