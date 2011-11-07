@@ -24,8 +24,6 @@ package org.jboss.nio2.server.sync;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * {@code Nio2SelectorClientManager}
@@ -36,8 +34,6 @@ import java.util.logging.Logger;
  */
 public class Nio2SelectorClientManager implements Runnable {
 
-	private static final Logger logger = Logger
-			.getLogger(Nio2SelectorClientManager.class.getName());
 	private SocketChannel channel;
 	private String sessionId;
 
@@ -52,7 +48,7 @@ public class Nio2SelectorClientManager implements Runnable {
 
 	@Override
 	public void run() {
-		ByteBuffer bb = ByteBuffer.allocate(1024);
+		ByteBuffer bb = ByteBuffer.allocate(512);
 		int count = -1;
 		try {
 			count = channel.read(bb);
@@ -60,29 +56,32 @@ public class Nio2SelectorClientManager implements Runnable {
 			byte bytes[] = new byte[count];
 			bb.get(bytes);
 			String request = new String(bytes);
-			String response = null;
-			if (request.startsWith("POST")) {
-				response = "jSessionId: " + this.sessionId + "\n";
-			} else {
-				response = "[" + this.sessionId + "] Pong from server\n";
+			if (!request.matches("\\s*")) {
+				System.out.println("[" + this.sessionId + "] -> " + request);
+				String response = null;
+				if (request.startsWith("POST")) {
+					response = "jSessionId: " + this.sessionId + "\n";
+				} else {
+					response = "[" + this.sessionId + "] Pong from server\n";
+				}
+
+				bb.clear();
+				bb.put(response.getBytes());
+				bb.flip();
+				channel.write(bb);
+				bb.clear();
 			}
-
-			bb.clear();
-			bb.put(response.getBytes());
-			bb.flip();
-			channel.write(bb);
 		} catch (Exception exp) {
-			logger.log(Level.SEVERE, "ERROR from client side");
+			System.err.println("ERROR from client side");
+			try {
+				System.out.println("Closing remote connection");
+				this.channel.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} finally {
+			bb = null;
 		}
-	}
-
-	/**
-	 * 
-	 * @throws IOException
-	 */
-	public void close() throws IOException {
-		logger.log(Level.INFO, "Closing remote connection");
-		this.channel.close();
 	}
 
 	/**

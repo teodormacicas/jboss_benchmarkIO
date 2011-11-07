@@ -58,7 +58,6 @@ public class Nio2ClientManager implements Runnable {
 		boolean initialized = false;
 		String response = null;
 		try {
-
 			do {
 				bb.clear();
 				count = channel.read(bb);

@@ -1,4 +1,4 @@
-/*
+/**
  * JBoss, Home of Professional Open Source. Copyright 2011, Red Hat, Inc., and
  * individual contributors as indicated by the @author tags. See the
  * copyright.txt file in the distribution for a full listing of individual
@@ -27,12 +27,11 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.jboss.nio2.server.SessionGenerator;
 
@@ -46,11 +45,10 @@ import org.jboss.nio2.server.SessionGenerator;
  */
 public class Nio2ServerSelector {
 
-	private static final Logger logger = Logger.getLogger(Nio2ServerSelector.class.getName());
 	protected static final int SERVER_PORT = 8080;
 	protected static final ConcurrentMap<String, String> CONNECTIONS = new ConcurrentHashMap<String, String>();
-	private static final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(400);
-	private static Selector selector;// = Selector.open();
+	private static final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(50);
+	private static Selector selector;
 
 	/**
 	 * Create a new instance of {@code Nio2ServerSelector}
@@ -71,65 +69,35 @@ public class Nio2ServerSelector {
 			try {
 				port = Integer.valueOf(args[0]);
 			} catch (NumberFormatException e) {
-				logger.log(Level.SEVERE, e.getMessage(), e);
+				System.err.println("ERROR: " + e.getMessage());
 			}
 		}
 
-		logger.info("Open the channel selector...");
+		System.out.println("Open the channel selector...");
 		// Open the selector
 		selector = Selector.open();
-		selector.logger.info("Starting NIO2 Synchronous Sever on port " + port + " ...");
+		System.out.println("Starting NIO2 Synchronous Sever on port " + port + " ...");
 		final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open().bind(
 				new InetSocketAddress(port));
 		// Create a separate thread for the listen server channel
-		Thread serverThread = new Thread() {
-			public void run() {
-				boolean running = true;
-				while (running) {
-					try {
-						logger.log(Level.INFO, "Waiting for new connection");
-						SocketChannel channel = serverSocketChannel.accept();
-						if (channel != null) {
-							logger.log(Level.INFO, "New connection received");
-							String sessionId = SessionGenerator.generateId();
-							InetSocketAddress socketAddress = (InetSocketAddress) channel
-									.getRemoteAddress();
-							String hostname_port = socketAddress.getHostName() + ":"
-									+ socketAddress.getPort();
-							CONNECTIONS.put(hostname_port, sessionId);
-							channel.configureBlocking(false);
-							logger.info("Registering the new connection [" + hostname_port + "]");
-							channel.register(selector, channel.validOps());
-							logger.info("The new connection [" + hostname_port
-									+ "] has been registered");
-						}
-					} catch (Exception exp) {
-						logger.log(Level.SEVERE, exp.getMessage(), exp);
-						running = false;
-					}
-				}
-				logger.info("The server thread is finished...");
-			}
-		};
+		Thread server = new ThreadServer(serverSocketChannel);
 		// Starting the server thread
-		serverThread.start();
-		logger.info("Server started successfully...");
+		server.start();
+		System.out.println("Server started successfully...");
 		int count = -1;
 		while (true) {
-			logger.log(Level.INFO, "Waiting for new events ...");
 			try {
 				// Wait for an event
-				count = selector.selectNow();
+				count = selector.select(10);
 			} catch (Exception e) {
 				// Handle error with selector
-				logger.log(Level.SEVERE, e.getMessage(), e);
+				System.err.println("ERROR: " + e.getMessage());
 				break;
 			}
 
 			if (count > 0) {
 				// Get list of selection keys with pending events
 				Iterator<SelectionKey> it = selector.selectedKeys().iterator();
-
 				// Process each key at a time
 				while (it.hasNext()) {
 					// Get the selection key
@@ -147,8 +115,8 @@ public class Nio2ServerSelector {
 				}
 			}
 		}
-		serverThread.join();
-		logger.info("Server shutdown");
+		server.join();
+		System.out.println("Server shutdown");
 	}
 
 	/**
@@ -157,16 +125,96 @@ public class Nio2ServerSelector {
 	 * @throws Exception
 	 */
 	public static void processSelectionKey(SelectionKey selKey) throws Exception {
-		if (selKey.isValid() && selKey.isAcceptable()) {
+
+		if (selKey.isValid()) {
 			SocketChannel channel = (SocketChannel) selKey.channel();
-			InetSocketAddress socketAddress = (InetSocketAddress) channel.getRemoteAddress();
-			String ip_port = socketAddress.getHostName() + ":" + socketAddress.getPort();
-			// retrieve the session ID
-			String sessionId = CONNECTIONS.get(ip_port);
-			Nio2SelectorClientManager manager = new Nio2SelectorClientManager(channel);
-			manager.setSessionId(sessionId);
-			// Execute the client query
-			THREAD_POOL.execute(manager);
+			if (channel.isConnected() && channel.isOpen()) {
+				InetSocketAddress socketAddress = (InetSocketAddress) channel.getRemoteAddress();
+				String ip_port = socketAddress.getHostName() + ":" + socketAddress.getPort();
+				// retrieve the session ID
+				String sessionId = CONNECTIONS.get(ip_port);
+				Nio2SelectorClientManager manager = new Nio2SelectorClientManager(channel);
+				manager.setSessionId(sessionId);
+				// Execute the client query
+				THREAD_POOL.execute(manager);
+			} else {
+				selKey.cancel();
+			}
 		}
 	}
+
+	/**
+	 * 
+	 * @param host_port
+	 */
+	public static void removeConnection(String host_port) {
+		CONNECTIONS.remove(host_port);
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public static String generateId() {
+		UUID uuid = UUID.randomUUID();
+		return uuid.toString();
+	}
+
+	/**
+	 * {@code ThreadServer}
+	 * 
+	 * Created on Nov 5, 2011 at 12:52:28 PM
+	 * 
+	 * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
+	 */
+	private static class ThreadServer extends Thread {
+
+		private ServerSocketChannel serverSocketChannel;
+
+		/**
+		 * Create a new instance of {@code ThreadServer}
+		 * 
+		 * @param serverSocketChannel
+		 */
+		public ThreadServer(ServerSocketChannel serverSocketChannel) {
+			this.serverSocketChannel = serverSocketChannel;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Thread#run()
+		 */
+		@Override
+		public void run() {
+			boolean running = true;
+			int number = 0;
+			while (running) {
+				try {
+					System.out.println("Waiting for new connection");
+					SocketChannel channel = this.serverSocketChannel.accept();
+					if (channel != null) {
+						System.out.println("New connection received -> " + (++number));
+						String sessionId = generateId();
+						InetSocketAddress socketAddress = (InetSocketAddress) channel
+								.getRemoteAddress();
+						String hostname_port = socketAddress.getHostName() + ":"
+								+ socketAddress.getPort();
+						CONNECTIONS.put(hostname_port, sessionId);
+						channel.configureBlocking(false);
+						System.out
+								.println("Registering the new connection [" + hostname_port + "]");
+						channel.register(selector, SelectionKey.OP_READ);
+						System.out.println("The new connection [" + hostname_port
+								+ "] has been registered");
+					}
+				} catch (Exception exp) {
+					System.err.println("ERROR: " + exp.getMessage());
+					running = false;
+				}
+			}
+			System.out.println("The server thread is finished...");
+		}
+	}
+
 }

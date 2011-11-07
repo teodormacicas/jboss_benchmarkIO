@@ -95,20 +95,12 @@ public class JioClient extends Thread {
 			System.out.println("[Thread-" + getId() + "] terminated -> "
 					+ System.currentTimeMillis());
 			try {
-				close();
+				this.channel.close();
 			} catch (IOException ioex) {
 				System.err.println("Exception: " + ioex.getMessage());
 				ioex.printStackTrace();
 			}
 		}
-	}
-
-	/**
-	 * 
-	 * @throws IOException
-	 */
-	public void close() throws IOException {
-		this.channel.close();
 	}
 
 	/**
@@ -161,7 +153,7 @@ public class JioClient extends Thread {
 			write("Ping from client " + getId() + "\n");
 			response = read();
 			time = System.currentTimeMillis() - time;
-			System.out.println("Received from server -> " + response);
+			System.out.println("[Thread-" + getId() + "] Received from server -> " + response);
 			// update the maximum response time
 			if (time > max_time) {
 				max_time = time;
