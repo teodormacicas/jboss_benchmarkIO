@@ -24,12 +24,12 @@ package org.jboss.nio2.server.async;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -71,9 +71,9 @@ public class Nio2AsyncServer {
 
 		logger.log(Level.INFO, "Starting NIO2 Synchronous Sever on port {0} ...", port);
 		ExecutorService pool = Executors.newFixedThreadPool(400);
-		// AsynchronousChannelGroup threadGroup =
-		// AsynchronousChannelGroup.withThreadPool(pool);
-		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open()
+		AsynchronousChannelGroup threadGroup =
+		AsynchronousChannelGroup.withThreadPool(pool);
+		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open(threadGroup)
 				.bind(new InetSocketAddress(port));
 
 		boolean running = true;
@@ -81,11 +81,65 @@ public class Nio2AsyncServer {
 
 		while (running) {
 			logger.info("Waiting for new connections...");
-			// server.accept(null, new CompletionHandlerImpl());
-			Future<AsynchronousSocketChannel> future = listener.accept();
-			Nio2AsyncClientManager manager = new Nio2AsyncClientManager(future.get());
-			manager.setSessionId(SessionGenerator.generateId());
-			pool.execute(manager);
+			listener.accept(null, new CompletionHandler<AsynchronousSocketChannel, Void>() {
+
+				@Override
+				public void completed(final AsynchronousSocketChannel channel, Void attachment) {
+					final ByteBuffer buffer = ByteBuffer.allocate(512);
+					buffer.clear();
+					channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
+						boolean initialized = false;
+						private String response;
+						private String sessionId;
+
+						@Override
+						public void completed(Integer result, Void attachment) {
+							if (result > 0) {
+								System.out.println("");
+								byte bytes[] = new byte[result];
+								buffer.get(bytes);
+								System.out.println("[" + this.sessionId + "] " + new String(bytes));
+
+								if (!initialized) {
+									this.sessionId = SessionGenerator.generateId();
+									initialized = true;
+									response = "jSessionId: " + sessionId + "\n";
+								} else {
+									response = "[" + this.sessionId + "] Pong from server\n";
+								}
+
+								buffer.clear();
+								buffer.put(response.getBytes());
+								buffer.flip();
+								channel.write(buffer);								
+								buffer.clear();
+							}
+						}
+
+						@Override
+						public void failed(Throwable exc, Void attachment) {
+							try {
+								channel.close();
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						}
+					});
+				}
+
+				@Override
+				public void failed(Throwable exc, Void attachment) {
+					System.err.println(exc.getMessage());
+				}
+			});
+
+			/*
+			 * Future<AsynchronousSocketChannel> future = listener.accept();
+			 * Nio2AsyncClientManager manager = new
+			 * Nio2AsyncClientManager(future.get());
+			 * manager.setSessionId(SessionGenerator.generateId());
+			 * pool.execute(manager);
+			 */
 		}
 
 		listener.close();

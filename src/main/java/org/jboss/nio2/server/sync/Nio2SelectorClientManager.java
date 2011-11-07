@@ -22,8 +22,8 @@
 package org.jboss.nio2.server.sync;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 /**
@@ -36,9 +36,8 @@ import java.nio.channels.SocketChannel;
 public class Nio2SelectorClientManager implements Runnable {
 
 	private SocketChannel channel;
-	private String hostname;
-	private int port;
 	private String sessionId;
+	private ByteBuffer byteBuffer = ByteBuffer.allocate(512);
 
 	/**
 	 * Create a new instance of {@code Nio2SelectorClientManager}
@@ -51,39 +50,45 @@ public class Nio2SelectorClientManager implements Runnable {
 
 	@Override
 	public void run() {
-		ByteBuffer bb = ByteBuffer.allocate(512);
+
 		int count = -1;
 		try {
-			count = channel.read(bb);
-			bb.flip();
-			byte bytes[] = new byte[count];
-			bb.get(bytes);
-			String request = new String(bytes);
-			if (!request.matches("\\s*")) {
-				System.out.println("[" + this.sessionId + "] -> " + request);
-				String response = null;
-				if (request.startsWith("POST")) {
-					response = "jSessionId: " + this.sessionId + "\n";
-				} else {
-					response = "[" + this.sessionId + "] Pong from server\n";
+			if (channel.isOpen() && channel.isConnected()) {
+				count = channel.read(byteBuffer);
+				byteBuffer.flip();
+				byte bytes[] = new byte[count];
+				byteBuffer.get(bytes);
+				String request = new String(bytes);
+				if (!request.matches("\\s*")) {
+					System.out.println("[" + this.sessionId + "] -> " + request);
+					String response = null;
+					if (request.startsWith("POST")) {
+						response = "jSessionId: " + this.sessionId + "\n";
+					} else {
+						response = "[" + this.sessionId + "] Pong from server\n";
+					}
+					
+					byteBuffer.clear();
+					byteBuffer.put(response.getBytes());
+					byteBuffer.flip();
+					channel.write(byteBuffer);
+					byteBuffer.clear();
 				}
-
-				bb.clear();
-				bb.put(response.getBytes());
-				bb.flip();
-				channel.write(bb);
-				bb.clear();
 			}
 		} catch (Exception exp) {
 			System.err.println("ERROR from client side -> " + exp.getMessage());
 			try {
 				System.out.println("Closing remote connection");
+				Nio2ServerSelector.removeConnection(channel);
+				SelectionKey key = channel.keyFor(Nio2ServerSelector.selector);
+				if (key != null) {
+					key.cancel();
+				}
 				this.channel.close();
+				this.channel = null;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		} finally {
-			bb = null;
 		}
 	}
 
@@ -104,41 +109,5 @@ public class Nio2SelectorClientManager implements Runnable {
 	 */
 	public void setSessionId(String sessionId) {
 		this.sessionId = sessionId;
-	}
-
-	/**
-	 * Getter for hostname
-	 *
-	 * @return the hostname
-	 */
-	public String getHostname() {
-		return this.hostname;
-	}
-
-	/**
-	 * Setter for the hostname
-	 *
-	 * @param hostname the hostname to set
-	 */
-	public void setHostname(String hostname) {
-		this.hostname = hostname;
-	}
-
-	/**
-	 * Getter for port
-	 *
-	 * @return the port
-	 */
-	public int getPort() {
-		return this.port;
-	}
-
-	/**
-	 * Setter for the port
-	 *
-	 * @param port the port to set
-	 */
-	public void setPort(int port) {
-		this.port = port;
 	}
 }

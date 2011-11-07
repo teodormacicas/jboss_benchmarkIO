@@ -33,8 +33,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.jboss.nio2.server.SessionGenerator;
-
 /**
  * {@code Nio2ServerSelector}
  * <p/>
@@ -46,9 +44,11 @@ import org.jboss.nio2.server.SessionGenerator;
 public class Nio2ServerSelector {
 
 	protected static final int SERVER_PORT = 8080;
-	protected static final ConcurrentMap<String, String> CONNECTIONS = new ConcurrentHashMap<String, String>();
-	private static final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(50);
-	private static Selector selector;
+	protected static final ConcurrentMap<SocketChannel, String> CONNECTIONS = new ConcurrentHashMap<SocketChannel, String>();
+	private static final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(50,
+			Executors.defaultThreadFactory());
+	protected static Selector selector;
+	protected static final ConcurrentMap<SocketChannel, Runnable> RUNNABLES = new ConcurrentHashMap<SocketChannel, Runnable>();
 
 	/**
 	 * Create a new instance of {@code Nio2ServerSelector}
@@ -88,7 +88,7 @@ public class Nio2ServerSelector {
 		while (true) {
 			try {
 				// Wait for an event
-				count = selector.select(20);
+				count = selector.select(50);
 			} catch (Exception e) {
 				// Handle error with selector
 				System.err.println("ERROR: " + e.getMessage());
@@ -128,17 +128,12 @@ public class Nio2ServerSelector {
 	 */
 	public static void processSelectionKey(SelectionKey selKey) throws Exception {
 
-		if (selKey.isValid()) {
+		if (selKey.isValid() && selKey.isReadable()) {
 			SocketChannel channel = (SocketChannel) selKey.channel();
 
 			if (channel.isOpen() && channel.isConnected()) {
-				InetSocketAddress socketAddress = (InetSocketAddress) channel.getRemoteAddress();
-				String ip_port = socketAddress.getHostName() + ":" + socketAddress.getPort();
 				// retrieve the session ID
-				String sessionId = CONNECTIONS.get(ip_port);
-				Nio2SelectorClientManager manager = new Nio2SelectorClientManager(channel);
-				manager.setSessionId(sessionId);
-
+				String sessionId = CONNECTIONS.get(channel);
 				/*
 				 * Due to the inherent delay between key cancellation and
 				 * channel deregistration, a channel may remain registered for
@@ -146,7 +141,8 @@ public class Nio2ServerSelector {
 				 * channel may also remain registered for some time after it is
 				 * closed.
 				 */
-				if (sessionId != null) {
+				if (sessionId != null && RUNNABLES.get(channel) != null) {
+					Runnable manager = RUNNABLES.get(channel);
 					// Execute the client query
 					THREAD_POOL.execute(manager);
 				}
@@ -161,8 +157,9 @@ public class Nio2ServerSelector {
 	 * 
 	 * @param host_port
 	 */
-	public static void removeConnection(String host_port) {
-		CONNECTIONS.remove(host_port);
+	public static void removeConnection(SocketChannel channel) {
+		CONNECTIONS.remove(channel);
+		RUNNABLES.remove(channel);
 	}
 
 	/**
@@ -209,13 +206,16 @@ public class Nio2ServerSelector {
 					SocketChannel channel = this.serverSocketChannel.accept();
 					if (channel != null) {
 						System.out.println("New connection received -> " + (++number));
-						String sessionId = generateId();
 						InetSocketAddress socketAddress = (InetSocketAddress) channel
 								.getRemoteAddress();
 						String hostname_port = socketAddress.getHostName() + ":"
 								+ socketAddress.getPort();
-						CONNECTIONS.put(hostname_port, sessionId);
+						String sessionId = generateId();
+						CONNECTIONS.put(channel, sessionId);
 						channel.configureBlocking(false);
+						Nio2SelectorClientManager manager = new Nio2SelectorClientManager(channel);
+						manager.setSessionId(sessionId);
+						RUNNABLES.put(channel, manager);
 						System.out
 								.println("Registering the new connection [" + hostname_port + "]");
 						channel.register(selector, SelectionKey.OP_READ);
@@ -225,6 +225,7 @@ public class Nio2ServerSelector {
 				} catch (Exception exp) {
 					System.err.println("ERROR: " + exp.getMessage());
 					running = false;
+					exp.printStackTrace();
 				}
 			}
 			System.out.println("The server thread is finished...");
