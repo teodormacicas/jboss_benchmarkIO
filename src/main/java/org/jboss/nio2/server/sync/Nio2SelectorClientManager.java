@@ -22,6 +22,7 @@
 package org.jboss.nio2.server.sync;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
@@ -35,6 +36,8 @@ import java.nio.channels.SocketChannel;
 public class Nio2SelectorClientManager implements Runnable {
 
 	private SocketChannel channel;
+	private String hostname;
+	private int port;
 	private String sessionId;
 
 	/**
@@ -72,9 +75,15 @@ public class Nio2SelectorClientManager implements Runnable {
 				bb.clear();
 			}
 		} catch (Exception exp) {
-			System.err.println("ERROR from client side");
+			System.err.println("ERROR from client side -> " + exp.getMessage());
 			try {
 				System.out.println("Closing remote connection");
+				
+				InetSocketAddress socketAddress = (InetSocketAddress) channel
+						.getRemoteAddress();
+				String hostname_port = socketAddress.getHostName() + ":"
+						+ socketAddress.getPort();
+				Nio2ServerSelector.CONNECTIONS.remove(hostname_port);
 				this.channel.close();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -101,5 +110,41 @@ public class Nio2SelectorClientManager implements Runnable {
 	 */
 	public void setSessionId(String sessionId) {
 		this.sessionId = sessionId;
+	}
+
+	/**
+	 * Getter for hostname
+	 *
+	 * @return the hostname
+	 */
+	public String getHostname() {
+		return this.hostname;
+	}
+
+	/**
+	 * Setter for the hostname
+	 *
+	 * @param hostname the hostname to set
+	 */
+	public void setHostname(String hostname) {
+		this.hostname = hostname;
+	}
+
+	/**
+	 * Getter for port
+	 *
+	 * @return the port
+	 */
+	public int getPort() {
+		return this.port;
+	}
+
+	/**
+	 * Setter for the port
+	 *
+	 * @param port the port to set
+	 */
+	public void setPort(int port) {
+		this.port = port;
 	}
 }

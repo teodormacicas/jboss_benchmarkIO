@@ -128,15 +128,25 @@ public class Nio2ServerSelector {
 
 		if (selKey.isValid()) {
 			SocketChannel channel = (SocketChannel) selKey.channel();
-			if (channel.isConnected() && channel.isOpen()) {
+			if (channel.isOpen() && channel.isConnected()) {
 				InetSocketAddress socketAddress = (InetSocketAddress) channel.getRemoteAddress();
 				String ip_port = socketAddress.getHostName() + ":" + socketAddress.getPort();
 				// retrieve the session ID
 				String sessionId = CONNECTIONS.get(ip_port);
 				Nio2SelectorClientManager manager = new Nio2SelectorClientManager(channel);
 				manager.setSessionId(sessionId);
-				// Execute the client query
-				THREAD_POOL.execute(manager);
+
+				/*
+				 * Due to the inherent delay between key cancellation and
+				 * channel deregistration, a channel may remain registered for
+				 * some time after all of its keys have been cancelled. A
+				 * channel may also remain registered for some time after it is
+				 * closed.
+				 */
+				if (sessionId != null) {
+					// Execute the client query
+					THREAD_POOL.execute(manager);
+				}
 			} else {
 				selKey.cancel();
 			}
