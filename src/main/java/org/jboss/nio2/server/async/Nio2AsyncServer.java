@@ -80,50 +80,9 @@ public class Nio2AsyncServer {
 
 		while (running) {
 			logger.info("Waiting for new connections...");
-			// listener.accept(null, new CompletionHandlerImpl());
-
 			Future<AsynchronousSocketChannel> future = listener.accept();
 			final AsynchronousSocketChannel channel = future.get();
-			final ByteBuffer buffer = ByteBuffer.allocate(512);
-			channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
-
-				boolean initialized = false;
-				private String response;
-				private String sessionId;
-
-				@Override
-				public void completed(Integer nBytes, Void attachment) {
-					if (nBytes > 0) {
-						byte bytes[] = new byte[nBytes];
-						buffer.get(bytes);
-						System.out.println("[" + this.sessionId + "] " + new String(bytes));
-
-						if (!initialized) {
-							this.sessionId = generateId();
-							initialized = true;
-							response = "jSessionId: " + sessionId + "\n";
-						} else {
-							response = "[" + this.sessionId + "] Pong from server\n";
-						}
-
-						buffer.clear();
-						buffer.put(response.getBytes());
-						buffer.flip();
-						channel.write(buffer);
-						buffer.clear();
-					}
-				}
-
-				@Override
-				public void failed(Throwable exc, Void attachment) {
-					try {
-						channel.close();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-			});
-
+			pool.execute(new ClientManager(channel));
 			/*
 			 * Future<AsynchronousSocketChannel> future = listener.accept();
 			 * Nio2AsyncClientManager manager = new
@@ -146,74 +105,75 @@ public class Nio2AsyncServer {
 	}
 
 	/**
-	 * {@code CompletionHandlerImpl}
+	 * {@code ClientManager}
 	 * 
-	 * Created on Oct 28, 2011 at 4:09:21 PM
+	 * Created on Nov 7, 2011 at 4:40:45 PM
 	 * 
 	 * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
 	 */
-	protected static class CompletionHandlerImpl implements
-			CompletionHandler<AsynchronousSocketChannel, Void> {
-		private final ByteBuffer buffer = ByteBuffer.allocate(512);
+	protected static class ClientManager implements Runnable {
+
+		private AsynchronousSocketChannel channel;
+
+		/**
+		 * Create a new instance of {@code ClientManager}
+		 * 
+		 * @param channel
+		 */
+		public ClientManager(AsynchronousSocketChannel channel) {
+			this.channel = channel;
+		}
 
 		/*
 		 * (non-Javadoc)
 		 * 
-		 * @see java.nio.channels.CompletionHandler#completed(java.lang.Object,
-		 * java.lang.Object)
+		 * @see java.lang.Runnable#run()
 		 */
 		@Override
-		public void completed(final AsynchronousSocketChannel channel, Void attachment) {
+		public void run() {
+			final ByteBuffer buffer = ByteBuffer.allocate(512);
+			while (this.channel.isOpen()) {
+				channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
 
-			buffer.clear();
-			channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
-				boolean initialized = false;
-				private String response;
-				private String sessionId;
+					boolean initialized = false;
+					private String response;
+					private String sessionId;
 
-				@Override
-				public void completed(Integer nBytes, Void attachment) {
-					if (nBytes > 0) {
-						byte bytes[] = new byte[nBytes];
-						buffer.get(bytes);
-						System.out.println("[" + this.sessionId + "] " + new String(bytes));
+					@Override
+					public void completed(Integer nBytes, Void attachment) {
+						if (nBytes > 0) {
+							byte bytes[] = new byte[nBytes];
+							buffer.get(bytes);
+							System.out.println("[" + this.sessionId + "] " + new String(bytes));
 
-						if (!initialized) {
-							this.sessionId = generateId();
-							initialized = true;
-							response = "jSessionId: " + sessionId + "\n";
-						} else {
-							response = "[" + this.sessionId + "] Pong from server\n";
+							if (!initialized) {
+								this.sessionId = generateId();
+								initialized = true;
+								response = "jSessionId: " + sessionId + "\n";
+							} else {
+								response = "[" + this.sessionId + "] Pong from server\n";
+							}
+
+							buffer.clear();
+							buffer.put(response.getBytes());
+							buffer.flip();
+							channel.write(buffer);
+							buffer.clear();
 						}
-
-						buffer.clear();
-						buffer.put(response.getBytes());
-						buffer.flip();
-						channel.write(buffer);
-						buffer.clear();
 					}
-				}
 
-				@Override
-				public void failed(Throwable exc, Void attachment) {
-					try {
-						channel.close();
-					} catch (IOException e) {
-						e.printStackTrace();
+					@Override
+					public void failed(Throwable exc, Void attachment) {
+						try {
+							channel.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
-				}
-			});
+				});
+			}
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.nio.channels.CompletionHandler#failed(java.lang.Throwable,
-		 * java.lang.Object)
-		 */
-		@Override
-		public void failed(Throwable exc, Void attachment) {
-			System.err.println(exc.getMessage());
-		}
 	}
+
 }
