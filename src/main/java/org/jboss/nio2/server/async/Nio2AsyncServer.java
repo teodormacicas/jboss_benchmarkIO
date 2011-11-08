@@ -47,6 +47,8 @@ public class Nio2AsyncServer {
 
 	public static final int SERVER_PORT = 8081;
 	private static final Logger logger = Logger.getLogger(Nio2AsyncServer.class.getName());
+	private static final long TIMEOUT = 20;
+	private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
 
 	/**
 	 * Create a new instance of {@code Nio2AsyncServer}
@@ -94,8 +96,7 @@ public class Nio2AsyncServer {
 			final AsynchronousSocketChannel channel = future.get();
 
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
-			channel.read(buffer, 1000, TimeUnit.MILLISECONDS, channel, new CompletionHandlerImpl(
-					buffer));
+			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, new CompletionHandlerImpl(buffer));
 
 			/*
 			 * channel.read(buffer, null, new CompletionHandler<Integer, Void>()
@@ -168,7 +169,7 @@ public class Nio2AsyncServer {
 				buffer.clear();
 			}
 			// Read again with the this CompletionHandler
-			channel.read(buffer, 1000, TimeUnit.MILLISECONDS, channel, this);
+			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, this);
 
 		}
 
