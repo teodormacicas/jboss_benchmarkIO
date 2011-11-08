@@ -104,7 +104,6 @@ public class Nio2AsyncServer {
 						byte bytes[] = new byte[nBytes];
 						buffer.flip();
 						buffer.get(bytes);
-						System.out.println("[" + this.sessionId + "] " + new String(bytes));
 
 						if (!initialized) {
 							this.sessionId = generateId();
@@ -113,6 +112,7 @@ public class Nio2AsyncServer {
 						} else {
 							response = "[" + this.sessionId + "] Pong from server\n";
 						}
+						System.out.print("[" + this.sessionId + "] " + new String(bytes));
 
 						buffer.clear();
 						buffer.put(response.getBytes());
@@ -120,12 +120,15 @@ public class Nio2AsyncServer {
 						channel.write(buffer);
 						buffer.clear();
 					}
+					// Read again with the this CompletionHandler
 					channel.read(buffer, null, this);
 				}
 
 				@Override
 				public void failed(Throwable exc, Void attachment) {
 					try {
+						System.out.println("Closing connection for session : [" + this.sessionId
+								+ "]");
 						channel.close();
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -144,86 +147,5 @@ public class Nio2AsyncServer {
 		}
 
 		listener.close();
-	}
-
-	/**
-	 * {@code ClientManager}
-	 * 
-	 * Created on Nov 7, 2011 at 4:40:45 PM
-	 * 
-	 * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
-	 */
-	protected static class ClientManager implements Runnable {
-
-		private AsynchronousSocketChannel channel;
-
-		/**
-		 * Create a new instance of {@code ClientManager}
-		 * 
-		 * @param channel
-		 */
-		public ClientManager(AsynchronousSocketChannel channel) {
-			this.channel = channel;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.lang.Runnable#run()
-		 */
-		@Override
-		public void run() {
-			final ByteBuffer buffer = ByteBuffer.allocate(512);
-			while (this.channel.isOpen()) {
-				try {
-					Future<Integer> count = channel.read(buffer);
-					System.out.println("Number of bytes read: " + count.get());
-
-					if (count.get() == 0) {
-						channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
-
-							boolean initialized = false;
-							private String response;
-							private String sessionId;
-
-							@Override
-							public void completed(Integer nBytes, Void attachment) {
-								if (nBytes > 0) {
-									byte bytes[] = new byte[nBytes];
-									buffer.get(bytes);
-									System.out.println("[" + this.sessionId + "] "
-											+ new String(bytes));
-
-									if (!initialized) {
-										this.sessionId = generateId();
-										initialized = true;
-										response = "jSessionId: " + sessionId + "\n";
-									} else {
-										response = "[" + this.sessionId + "] Pong from server\n";
-									}
-
-									buffer.clear();
-									buffer.put(response.getBytes());
-									buffer.flip();
-									channel.write(buffer);
-									buffer.clear();
-								}
-							}
-
-							@Override
-							public void failed(Throwable exc, Void attachment) {
-								try {
-									channel.close();
-								} catch (IOException e) {
-									e.printStackTrace();
-								}
-							}
-						});
-					}
-				} catch (Exception exp) {
-					System.err.println(getClass().getName() + ": Exception -> " + exp.getMessage());
-				}
-			}
-		}
 	}
 }
