@@ -135,6 +135,7 @@ public class Nio2AsyncServer {
 			while (this.channel.isOpen()) {
 				try {
 					Future<Integer> count = channel.read(buffer);
+					System.out.println("Number of bytes read: " + count.get());
 					if (count.get() == 0) {
 						channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
 
