@@ -32,6 +32,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -93,50 +94,94 @@ public class Nio2AsyncServer {
 			final AsynchronousSocketChannel channel = future.get();
 
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
-			channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
-				boolean initialized = false;
-				private String response;
-				private String sessionId;
+			channel.read(buffer, 1000, TimeUnit.MILLISECONDS, channel, new CompletionHandlerImpl(
+					buffer));
 
-				@Override
-				public void completed(Integer nBytes, Void attachment) {
-					if (nBytes > 0) {
-						byte bytes[] = new byte[nBytes];
-						buffer.flip();
-						buffer.get(bytes);
-
-						if (!initialized) {
-							this.sessionId = generateId();
-							initialized = true;
-							response = "jSessionId: " + sessionId + "\n";
-						} else {
-							response = "[" + this.sessionId + "] Pong from server\n";
-						}
-						System.out.print("[" + this.sessionId + "] " + new String(bytes));
-
-						buffer.clear();
-						buffer.put(response.getBytes());
-						buffer.flip();
-						channel.write(buffer);
-						buffer.clear();
-					}
-					// Read again with the this CompletionHandler
-					channel.read(buffer, null, this);
-				}
-
-				@Override
-				public void failed(Throwable exc, Void attachment) {
-					try {
-						System.out.println("Closing connection for session : [" + this.sessionId
-								+ "]");
-						channel.close();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-			});
+			/*
+			 * channel.read(buffer, null, new CompletionHandler<Integer, Void>()
+			 * { boolean initialized = false; private String response; private
+			 * String sessionId;
+			 * 
+			 * @Override public void completed(Integer nBytes, Void attachment)
+			 * { if (nBytes > 0) { byte bytes[] = new byte[nBytes];
+			 * buffer.flip(); buffer.get(bytes);
+			 * 
+			 * if (!initialized) { this.sessionId = generateId(); initialized =
+			 * true; response = "JSESSION_ID: " + sessionId + "\n"; } else {
+			 * response = "[" + this.sessionId + "] Pong from server\n"; }
+			 * System.out.println("[" + this.sessionId + "] " + new
+			 * String(bytes).trim()); buffer.clear();
+			 * buffer.put(response.getBytes()); buffer.flip();
+			 * channel.write(buffer); buffer.clear(); } // Read again with the
+			 * this CompletionHandler channel.read(buffer, null, this); }
+			 * 
+			 * @Override public void failed(Throwable exc, Void attachment) {
+			 * try { System.out.println("Closing connection for session : [" +
+			 * this.sessionId + "]"); channel.close(); } catch (IOException e) {
+			 * e.printStackTrace(); } } });
+			 */
 		}
 
 		listener.close();
 	}
+
+	private static class CompletionHandlerImpl implements
+			CompletionHandler<Integer, AsynchronousSocketChannel> {
+
+		boolean initialized = false;
+		private String response;
+		private String sessionId;
+		final ByteBuffer buffer;
+
+		/**
+		 * Create a new instance of {@code CompletionHandlerImpl}
+		 */
+		public CompletionHandlerImpl(ByteBuffer buffer) {
+			this.buffer = buffer;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.nio.channels.CompletionHandler#completed(java.lang.Object,
+		 * java.lang.Object)
+		 */
+		@Override
+		public void completed(Integer nBytes, AsynchronousSocketChannel channel) {
+			if (nBytes > 0) {
+				byte bytes[] = new byte[nBytes];
+				buffer.flip();
+				buffer.get(bytes);
+
+				if (!initialized) {
+					this.sessionId = generateId();
+					initialized = true;
+					response = "JSESSION_ID: " + sessionId + "\n";
+				} else {
+					response = "[" + this.sessionId + "] Pong from server\n";
+				}
+				System.out.println("[" + this.sessionId + "] " + new String(bytes).trim());
+				buffer.clear();
+				buffer.put(response.getBytes());
+				buffer.flip();
+				channel.write(buffer);
+				buffer.clear();
+			}
+			// Read again with the this CompletionHandler
+			channel.read(buffer, 1000, TimeUnit.MILLISECONDS, channel, this);
+
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.nio.channels.CompletionHandler#failed(java.lang.Throwable,
+		 * java.lang.Object)
+		 */
+		@Override
+		public void failed(Throwable exc, AsynchronousSocketChannel channel) {
+			exc.printStackTrace();
+		}
+	}
+
 }
