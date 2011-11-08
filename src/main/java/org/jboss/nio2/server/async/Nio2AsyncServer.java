@@ -91,7 +91,48 @@ public class Nio2AsyncServer {
 			logger.info("Waiting for new connections...");
 			Future<AsynchronousSocketChannel> future = listener.accept();
 			final AsynchronousSocketChannel channel = future.get();
-			pool.execute(new ClientManager(channel));
+
+			final ByteBuffer buffer = ByteBuffer.allocate(512);
+			channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
+				boolean initialized = false;
+				private String response;
+				private String sessionId;
+
+				@Override
+				public void completed(Integer nBytes, Void attachment) {
+					if (nBytes > 0) {
+						byte bytes[] = new byte[nBytes];
+						buffer.get(bytes);
+						System.out.println("[" + this.sessionId + "] " + new String(bytes));
+
+						if (!initialized) {
+							this.sessionId = generateId();
+							initialized = true;
+							response = "jSessionId: " + sessionId + "\n";
+						} else {
+							response = "[" + this.sessionId + "] Pong from server\n";
+						}
+
+						buffer.clear();
+						buffer.put(response.getBytes());
+						buffer.flip();
+						channel.write(buffer);
+						buffer.clear();
+					}
+					channel.read(buffer, null, this);
+				}
+
+				@Override
+				public void failed(Throwable exc, Void attachment) {
+					try {
+						channel.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			});
+
+			// pool.execute(new ClientManager(channel));
 			/*
 			 * Future<AsynchronousSocketChannel> future = listener.accept();
 			 * Nio2AsyncClientManager manager = new
@@ -136,6 +177,7 @@ public class Nio2AsyncServer {
 				try {
 					Future<Integer> count = channel.read(buffer);
 					System.out.println("Number of bytes read: " + count.get());
+
 					if (count.get() == 0) {
 						channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
 
