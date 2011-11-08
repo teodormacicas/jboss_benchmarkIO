@@ -205,7 +205,7 @@ public class JioClient extends Thread {
 			System.err.println("\thostname: The server IP/hostname.");
 			System.err.println("\tport: The server port number.");
 			System.err.println("\tn: The number of threads. (default is 100)");
-			System.err.println("\tdelay: The delay between writes. (default is 1000ms)");
+			System.err.println("\tdelay: The delay between requests. (default is 1000ms)");
 			System.exit(1);
 		}
 

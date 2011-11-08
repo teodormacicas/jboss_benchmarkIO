@@ -95,8 +95,13 @@ public class Nio2AsyncServer {
 			Future<AsynchronousSocketChannel> future = listener.accept();
 			final AsynchronousSocketChannel channel = future.get();
 
+			/*
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
 			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, new CompletionHandlerImpl(buffer));
+			// channel.read(buffer, channel, new CompletionHandlerImpl(buffer));
+			 */
+			Nio2AsyncClientManager manager = new Nio2AsyncClientManager(channel);
+			pool.execute(manager);
 
 			/*
 			 * channel.read(buffer, null, new CompletionHandler<Integer, Void>()
@@ -170,7 +175,7 @@ public class Nio2AsyncServer {
 			}
 			// Read again with the this CompletionHandler
 			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, this);
-
+			// channel.read(buffer, channel, this);
 		}
 
 		/*

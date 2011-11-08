@@ -72,9 +72,9 @@ public class LogParser {
 		FileWriter fw = new FileWriter(filename, true);
 		fw.write("---------- STATS ----------\n");
 
-		fw.write("AVG MAX: " + avg_max + "\n");
-		fw.write("AVG MIN: " + avg_min + "\n");
-		fw.write("AVG AVG: " + avg_avg + "\n");
+		fw.write("AVG MAX: " + avg_max + " ms\n");
+		fw.write("AVG MIN: " + avg_min + " ms\n");
+		fw.write("AVG AVG: " + avg_avg + " ms\n");
 		fw.flush();
 		fw.close();
 	}
