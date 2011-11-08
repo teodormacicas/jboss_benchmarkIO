@@ -102,6 +102,7 @@ public class Nio2AsyncServer {
 				public void completed(Integer nBytes, Void attachment) {
 					if (nBytes > 0) {
 						byte bytes[] = new byte[nBytes];
+						buffer.flip();
 						buffer.get(bytes);
 						System.out.println("[" + this.sessionId + "] " + new String(bytes));
 
