@@ -28,6 +28,7 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
+import java.util.Stack;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -52,6 +53,15 @@ public class Nio2AsyncServer {
 	 */
 	public Nio2AsyncServer() {
 		super();
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public static String generateId() {
+		UUID uuid = UUID.randomUUID();
+		return uuid.toString();
 	}
 
 	/**
@@ -96,15 +106,6 @@ public class Nio2AsyncServer {
 	}
 
 	/**
-	 * 
-	 * @return
-	 */
-	public static String generateId() {
-		UUID uuid = UUID.randomUUID();
-		return uuid.toString();
-	}
-
-	/**
 	 * {@code ClientManager}
 	 * 
 	 * Created on Nov 7, 2011 at 4:40:45 PM
@@ -135,7 +136,7 @@ public class Nio2AsyncServer {
 			while (this.channel.isOpen()) {
 				try {
 					Future<Integer> count = channel.read(buffer);
-					if (count.get() <= 0) {
+					if (count.get() == 0) {
 						channel.read(buffer, null, new CompletionHandler<Integer, Void>() {
 
 							boolean initialized = false;
