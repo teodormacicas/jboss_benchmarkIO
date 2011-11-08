@@ -28,7 +28,6 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.util.Stack;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -178,7 +177,7 @@ public class Nio2AsyncServer {
 						});
 					}
 				} catch (Exception exp) {
-
+					System.err.println(getClass().getName() + ": Exception -> " + exp.getMessage());
 				}
 			}
 		}
