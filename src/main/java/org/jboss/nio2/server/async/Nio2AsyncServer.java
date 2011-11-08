@@ -135,15 +135,6 @@ public class Nio2AsyncServer {
 					}
 				}
 			});
-
-			// pool.execute(new ClientManager(channel));
-			/*
-			 * Future<AsynchronousSocketChannel> future = listener.accept();
-			 * Nio2AsyncClientManager manager = new
-			 * Nio2AsyncClientManager(future.get());
-			 * manager.setSessionId(SessionGenerator.generateId());
-			 * pool.execute(manager);
-			 */
 		}
 
 		listener.close();

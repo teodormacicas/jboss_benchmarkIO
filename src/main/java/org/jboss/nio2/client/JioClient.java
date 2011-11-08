@@ -125,7 +125,7 @@ public class JioClient extends Thread {
 		this.connect(socketAddress);
 		System.out.println("Connection to server established");
 		System.out.println("Initializing communication...");
-		write("POST /session-" + getId());
+		write("POST /session-" + getId() + "\n");
 		String response = read();
 		String tab[] = response.split("\\s+");
 		this.sessionId = tab[1];
@@ -200,7 +200,7 @@ public class JioClient extends Thread {
 	public static void main(String[] args) throws Exception {
 
 		if (args.length < 2) {
-			System.err.println("Usage: java " + Nio2Client.class.getName()
+			System.err.println("Usage: java " + JioClient.class.getName()
 					+ " hostname port [n] [delay]");
 			System.err.println("\thostname: The server IP/hostname.");
 			System.err.println("\tport: The server port number.");
