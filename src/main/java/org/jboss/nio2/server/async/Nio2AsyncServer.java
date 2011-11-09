@@ -109,7 +109,10 @@ public class Nio2AsyncServer {
 					System.out.println("No data received yet");
 					channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
 				} else {
-					System.out.println("Some data received");
+					buffer.flip();
+					byte bytes[] = new byte[x];
+					buffer.get(bytes);
+					System.out.println("Some data received : " + new String(bytes));
 				}
 			} catch (TimeoutException e) {
 				System.err.println("Timeout -> " + e.getMessage());
