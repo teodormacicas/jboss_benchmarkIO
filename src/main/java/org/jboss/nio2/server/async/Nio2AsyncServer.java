@@ -110,8 +110,11 @@ public class Nio2AsyncServer {
 			} catch (TimeoutException e) {
 				System.err.println("Timeout -> " + e.getMessage());
 				if (count.cancel(false)) {
+					System.out.println("Future canceled successfully");
 					channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
 					// channel.read(buffer, channel, this);
+				} else {
+					System.out.println("Future cancelation fails");
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
