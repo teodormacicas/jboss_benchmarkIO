@@ -29,10 +29,12 @@ import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -95,14 +97,29 @@ public class Nio2AsyncServer {
 			Future<AsynchronousSocketChannel> future = listener.accept();
 			final AsynchronousSocketChannel channel = future.get();
 
-			/*
-			 * final ByteBuffer buffer = ByteBuffer.allocate(512);
-			 * channel.read(buffer, TIMEOUT, TIME_UNIT, channel, new
-			 * CompletionHandlerImpl(buffer)); // channel.read(buffer, channel,
-			 * new CompletionHandlerImpl(buffer));
-			 */
-			Nio2AsyncClientManager manager = new Nio2AsyncClientManager(channel);
-			pool.execute(manager);
+			final ByteBuffer buffer = ByteBuffer.allocate(512);
+			CompletionHandler<Integer, AsynchronousSocketChannel> handler = new CompletionHandlerImpl(
+					buffer);
+			Future<Integer> count = channel.read(buffer);
+
+			try {
+				int x = count.get(1, TimeUnit.MILLISECONDS);
+				if (x <= 0) {
+					channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
+				}
+			} catch (TimeoutException e) {
+				System.err.println("Timeout -> " + e.getMessage());
+				channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
+				// channel.read(buffer, channel, this);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			// channel.read(buffer, channel, new CompletionHandlerImpl(buffer));
+
+			// Nio2AsyncClientManager manager = new
+			// Nio2AsyncClientManager(channel);
+			// pool.execute(manager);
 
 			/*
 			 * channel.read(buffer, null, new CompletionHandler<Integer, Void>()
@@ -132,6 +149,13 @@ public class Nio2AsyncServer {
 		listener.close();
 	}
 
+	/**
+	 * {@code CompletionHandlerImpl}
+	 * 
+	 * Created on Nov 9, 2011 at 9:08:18 AM
+	 * 
+	 * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
+	 */
 	private static class CompletionHandlerImpl implements
 			CompletionHandler<Integer, AsynchronousSocketChannel> {
 
@@ -175,8 +199,20 @@ public class Nio2AsyncServer {
 				buffer.clear();
 			}
 			// Read again with the this CompletionHandler
-			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, this);
-			// channel.read(buffer, channel, this);
+			Future<Integer> count = channel.read(buffer);
+
+			try {
+				int x = count.get(1, TimeUnit.MILLISECONDS);
+				if (x <= 0) {
+					channel.read(buffer, TIMEOUT, TIME_UNIT, channel, this);
+				}
+			} catch (TimeoutException e) {
+				System.err.println("Timeout -> " + e.getMessage());
+				channel.read(buffer, TIMEOUT, TIME_UNIT, channel, this);
+				// channel.read(buffer, channel, this);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 
 		/*

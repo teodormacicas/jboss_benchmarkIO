@@ -28,6 +28,8 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.jboss.nio2.server.SessionGenerator;
+
 /**
  * {@code NioAsyncClientManager}
  * 
@@ -70,6 +72,7 @@ public class Nio2AsyncClientManager implements Runnable {
 
 				if (!initialized) {
 					initialized = true;
+					this.sessionId = SessionGenerator.generateId();
 					response = "jSessionId: " + this.sessionId + "\n";
 				} else {
 					response = "[" + this.sessionId + "] Pong from server\n";
