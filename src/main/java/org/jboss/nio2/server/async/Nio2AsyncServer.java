@@ -29,7 +29,6 @@ import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -96,16 +95,21 @@ public class Nio2AsyncServer {
 			logger.info("Waiting for new connections...");
 			Future<AsynchronousSocketChannel> future = listener.accept();
 			final AsynchronousSocketChannel channel = future.get();
-
+			System.out.println("New connection accepted");
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
 			CompletionHandler<Integer, AsynchronousSocketChannel> handler = new CompletionHandlerImpl(
 					buffer);
+			System.out.println("Reading from the channel");
 			Future<Integer> count = channel.read(buffer);
-
+			System.out.println("Read call completed");
 			try {
+				System.out.println("Try to get data from the buffer");
 				int x = count.get(1, TimeUnit.MILLISECONDS);
 				if (x <= 0) {
+					System.out.println("No data received yet");
 					channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
+				} else {
+					System.out.println("Some data received");
 				}
 			} catch (TimeoutException e) {
 				System.err.println("Timeout -> " + e.getMessage());
