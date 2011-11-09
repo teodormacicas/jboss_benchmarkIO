@@ -50,6 +50,7 @@ public class Nio2AsyncServer {
 	private static final Logger logger = Logger.getLogger(Nio2AsyncServer.class.getName());
 	private static final long TIMEOUT = 20;
 	private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
+	private static final ExecutorService pool = Executors.newFixedThreadPool(400);
 
 	/**
 	 * Create a new instance of {@code Nio2AsyncServer}
@@ -83,7 +84,6 @@ public class Nio2AsyncServer {
 		}
 
 		logger.log(Level.INFO, "Starting NIO2 Synchronous Sever on port {0} ...", port);
-		ExecutorService pool = Executors.newFixedThreadPool(400);
 		AsynchronousChannelGroup threadGroup = AsynchronousChannelGroup.withThreadPool(pool);
 		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open(
 				threadGroup).bind(new InetSocketAddress(port));
@@ -95,67 +95,10 @@ public class Nio2AsyncServer {
 			logger.info("Waiting for new connections...");
 			Future<AsynchronousSocketChannel> future = listener.accept();
 			final AsynchronousSocketChannel channel = future.get();
-			System.out.println("New connection accepted");
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
-			CompletionHandler<Integer, AsynchronousSocketChannel> handler = new CompletionHandlerImpl(
-					buffer);
-			System.out.println("Reading from the channel");
-			Future<Integer> count = channel.read(buffer);
-			System.out.println("Read call completed");
-			try {
-				System.out.println("Try to get data from the buffer");
-				int x = count.get(1, TimeUnit.MILLISECONDS);
-				if (x <= 0) {
-					System.out.println("No data received yet");
-					channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
-				} else {
-					buffer.flip();
-					byte bytes[] = new byte[x];
-					buffer.get(bytes);
-					System.out.println("Some data received : " + new String(bytes));
-				}
-			} catch (TimeoutException e) {
-				System.err.println("Timeout -> " + e.getMessage());
-				if (count.cancel(false)) {
-					System.out.println("Future canceled successfully");
-					channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
-					// channel.read(buffer, channel, this);
-				} else {
-					System.out.println("Future cancelation fails");
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
-			// channel.read(buffer, channel, new CompletionHandlerImpl(buffer));
-
-			// Nio2AsyncClientManager manager = new
-			// Nio2AsyncClientManager(channel);
-			// pool.execute(manager);
-
-			/*
-			 * channel.read(buffer, null, new CompletionHandler<Integer, Void>()
-			 * { boolean initialized = false; private String response; private
-			 * String sessionId;
-			 * 
-			 * @Override public void completed(Integer nBytes, Void attachment)
-			 * { if (nBytes > 0) { byte bytes[] = new byte[nBytes];
-			 * buffer.flip(); buffer.get(bytes);
-			 * 
-			 * if (!initialized) { this.sessionId = generateId(); initialized =
-			 * true; response = "JSESSION_ID: " + sessionId + "\n"; } else {
-			 * response = "[" + this.sessionId + "] Pong from server\n"; }
-			 * System.out.println("[" + this.sessionId + "] " + new
-			 * String(bytes).trim()); buffer.clear();
-			 * buffer.put(response.getBytes()); buffer.flip();
-			 * channel.write(buffer); buffer.clear(); } // Read again with the
-			 * this CompletionHandler channel.read(buffer, null, this); }
-			 * 
-			 * @Override public void failed(Throwable exc, Void attachment) {
-			 * try { System.out.println("Closing connection for session : [" +
-			 * this.sessionId + "]"); channel.close(); } catch (IOException e) {
-			 * e.printStackTrace(); } } });
-			 */
+			final CompletionHandlerImpl handler = new CompletionHandlerImpl(buffer);
+			final RequestManager manager = new RequestManager(channel, buffer, handler);
+			pool.execute(manager);
 		}
 
 		listener.close();
@@ -174,13 +117,25 @@ public class Nio2AsyncServer {
 		boolean initialized = false;
 		private String response;
 		private String sessionId;
-		final ByteBuffer buffer;
+		private final ByteBuffer buffer;
+		private RequestManager manager;
 
 		/**
 		 * Create a new instance of {@code CompletionHandlerImpl}
 		 */
 		public CompletionHandlerImpl(ByteBuffer buffer) {
 			this.buffer = buffer;
+		}
+
+		/**
+		 * Create a new instance of {@code CompletionHandlerImpl}
+		 * 
+		 * @param buffer
+		 * @param manager
+		 */
+		public CompletionHandlerImpl(ByteBuffer buffer, RequestManager manager) {
+			this.buffer = buffer;
+			this.manager = manager;
 		}
 
 		/*
@@ -198,7 +153,7 @@ public class Nio2AsyncServer {
 
 				if (!initialized) {
 					this.sessionId = generateId();
-					initialized = true;
+					this.initialized = true;
 					response = "JSESSION_ID: " + sessionId + "\n";
 				} else {
 					response = "[" + this.sessionId + "] Pong from server\n";
@@ -209,22 +164,16 @@ public class Nio2AsyncServer {
 				buffer.flip();
 				channel.write(buffer);
 				buffer.clear();
+
+				if (this.manager == null) {
+					this.manager = new RequestManager(channel, buffer, this);
+				}
+
+				pool.execute(manager);
+				return;
 			}
 			// Read again with the this CompletionHandler
-			Future<Integer> count = channel.read(buffer);
-
-			try {
-				int x = count.get(1, TimeUnit.MILLISECONDS);
-				if (x <= 0) {
-					channel.read(buffer, TIMEOUT, TIME_UNIT, channel, this);
-				}
-			} catch (TimeoutException e) {
-				System.err.println("Timeout -> " + e.getMessage());
-				channel.read(buffer, TIMEOUT, TIME_UNIT, channel, this);
-				// channel.read(buffer, channel, this);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, this);
 		}
 
 		/*
@@ -237,6 +186,98 @@ public class Nio2AsyncServer {
 		public void failed(Throwable exc, AsynchronousSocketChannel channel) {
 			exc.printStackTrace();
 		}
+
+		/**
+		 * 
+		 * @param initialized
+		 */
+		public void setInitialized(boolean initialized) {
+			this.initialized = initialized;
+		}
 	}
 
+	/**
+	 * {@code RequestManager}
+	 * 
+	 * Created on Nov 9, 2011 at 1:12:42 PM
+	 * 
+	 * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
+	 */
+	private static class RequestManager implements Runnable {
+
+		private AsynchronousSocketChannel channel;
+		private ByteBuffer buffer;
+		private CompletionHandlerImpl handler;
+
+		/**
+		 * Create a new instance of {@code RequestManager}
+		 */
+		public RequestManager() {
+			super();
+		}
+
+		/**
+		 * Create a new instance of {@code RequestManager}
+		 * 
+		 * @param channel
+		 * @param buffer
+		 */
+		public RequestManager(AsynchronousSocketChannel channel, ByteBuffer buffer,
+				CompletionHandlerImpl handler) {
+			this.channel = channel;
+			this.buffer = buffer;
+			this.handler = handler;
+			this.handler.manager = this;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Runnable#run()
+		 */
+		@Override
+		public void run() {
+			Future<Integer> count = channel.read(buffer);
+			String response = null;
+			while (true) {
+				try {
+					int x = count.get(1, TimeUnit.MILLISECONDS);
+					if (x <= 0) {
+						// Delegate the read operation to completion handler
+						channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
+						break;
+					} else {
+						buffer.flip();
+						byte bytes[] = new byte[x];
+						buffer.get(bytes);
+
+						if (!this.handler.initialized) {
+							this.handler.sessionId = generateId();
+							response = "JSESSION_ID: " + this.handler.sessionId + "\n";
+							this.handler.initialized = true;
+						}
+
+						System.out.println("[" + this.handler.sessionId + "] "
+								+ new String(bytes).trim());
+						buffer.clear();
+						buffer.put(response.getBytes());
+						buffer.flip();
+						channel.write(buffer);
+						buffer.clear();
+					}
+				} catch (TimeoutException e) {
+					if (count.cancel(false)) {
+						System.out.println("Future canceled successfully");
+						// Delegate the read operation to completion handler
+						channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
+						// channel.read(buffer, channel, this);
+					}
+					break;
+				} catch (Exception exp) {
+					exp.printStackTrace();
+					break;
+				}
+			}
+		}
+	}
 }
