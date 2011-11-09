@@ -237,9 +237,10 @@ public class Nio2AsyncServer {
 		 */
 		@Override
 		public void run() {
-			Future<Integer> count = channel.read(buffer);
+			
 			String response = null;
 			while (true) {
+				Future<Integer> count = channel.read(buffer);
 				try {
 					int x = count.get(1, TimeUnit.MILLISECONDS);
 					if (x <= 0) {
