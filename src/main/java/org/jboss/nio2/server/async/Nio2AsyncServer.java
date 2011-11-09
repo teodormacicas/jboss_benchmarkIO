@@ -109,8 +109,10 @@ public class Nio2AsyncServer {
 				}
 			} catch (TimeoutException e) {
 				System.err.println("Timeout -> " + e.getMessage());
-				channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
-				// channel.read(buffer, channel, this);
+				if (count.cancel(false)) {
+					channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
+					// channel.read(buffer, channel, this);
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
