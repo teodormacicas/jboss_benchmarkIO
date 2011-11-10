@@ -96,16 +96,20 @@ public class Nio2AsyncServer {
 			Future<AsynchronousSocketChannel> future = listener.accept();
 			final AsynchronousSocketChannel channel = future.get();
 			
-			/*
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
-			final CompletionHandlerImpl handler = new CompletionHandlerImpl(buffer);
-			final RequestManager manager = new RequestManager(channel, buffer, handler);
-			*/
-			
-			Nio2AsyncClientManager manager = new Nio2AsyncClientManager(channel);
-			manager.setSessionId(generateId());
-			
-			pool.execute(manager);
+			channel.read(buffer, channel, new CompletionHandlerImpl(buffer));
+			/*
+			 * final ByteBuffer buffer = ByteBuffer.allocate(512); final
+			 * CompletionHandlerImpl handler = new
+			 * CompletionHandlerImpl(buffer); final RequestManager manager = new
+			 * RequestManager(channel, buffer, handler);
+			 */
+
+			/*
+			 * Nio2AsyncClientManager manager = new
+			 * Nio2AsyncClientManager(channel);
+			 * manager.setSessionId(generateId()); pool.execute(manager);
+			 */
 		}
 
 		listener.close();
@@ -172,12 +176,12 @@ public class Nio2AsyncServer {
 				channel.write(buffer);
 				buffer.clear();
 
-				if (this.manager == null) {
-					this.manager = new RequestManager(channel, buffer, this);
-				}
-
-				pool.execute(manager);
-				return;
+				/*
+				 * if (this.manager == null) { this.manager = new
+				 * RequestManager(channel, buffer, this); }
+				 * 
+				 * pool.execute(manager); return;
+				 */
 			}
 			// Read again with the this CompletionHandler
 			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, this);
