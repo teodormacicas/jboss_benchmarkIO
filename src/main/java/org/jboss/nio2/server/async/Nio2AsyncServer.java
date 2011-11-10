@@ -95,9 +95,16 @@ public class Nio2AsyncServer {
 			logger.info("Waiting for new connections...");
 			Future<AsynchronousSocketChannel> future = listener.accept();
 			final AsynchronousSocketChannel channel = future.get();
+			
+			/*
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
 			final CompletionHandlerImpl handler = new CompletionHandlerImpl(buffer);
 			final RequestManager manager = new RequestManager(channel, buffer, handler);
+			*/
+			
+			Nio2AsyncClientManager manager = new Nio2AsyncClientManager(channel);
+			manager.setSessionId(generateId());
+			
 			pool.execute(manager);
 		}
 
@@ -237,17 +244,13 @@ public class Nio2AsyncServer {
 		 */
 		@Override
 		public void run() {
-			
+
 			String response = null;
 			while (true) {
 				Future<Integer> count = channel.read(buffer);
 				try {
 					int x = count.get(1, TimeUnit.MILLISECONDS);
-					if (x <= 0) {
-						// Delegate the read operation to completion handler
-						channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
-						break;
-					} else {
+					if (x > 0) {
 						buffer.flip();
 						byte bytes[] = new byte[x];
 						buffer.get(bytes);
@@ -256,15 +259,16 @@ public class Nio2AsyncServer {
 							this.handler.sessionId = generateId();
 							response = "JSESSION_ID: " + this.handler.sessionId + "\n";
 							this.handler.initialized = true;
+						} else {
+							response = "[" + this.handler.sessionId + "] Pong from server\n";
 						}
 
 						System.out.println("[" + this.handler.sessionId + "] "
 								+ new String(bytes).trim());
-						buffer.clear();
-						buffer.put(response.getBytes());
-						buffer.flip();
-						channel.write(buffer);
-						buffer.clear();
+
+						this.write(response);
+					} else {
+						throw new Exception("Connection closed remotely");
 					}
 				} catch (TimeoutException e) {
 					if (count.cancel(false)) {
@@ -279,6 +283,14 @@ public class Nio2AsyncServer {
 					break;
 				}
 			}
+		}
+
+		public void write(String data) {
+			buffer.clear();
+			buffer.put(data.getBytes());
+			buffer.flip();
+			channel.write(buffer);
+			buffer.clear();
 		}
 	}
 }

@@ -78,6 +78,7 @@ public class Nio2Server {
 		while (running) {
 			logger.log(Level.INFO, "Waiting for new connection");
 			SocketChannel channel = serverSocketChannel.accept();
+			
 			if (channel != null) {
 				logger.log(Level.INFO, "New connection received");
 				Nio2ClientManager clientManager = new Nio2ClientManager(channel);

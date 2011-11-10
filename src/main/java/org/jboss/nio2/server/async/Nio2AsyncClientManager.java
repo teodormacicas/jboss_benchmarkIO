@@ -60,30 +60,31 @@ public class Nio2AsyncClientManager implements Runnable {
 	@Override
 	public void run() {
 		ByteBuffer bb = ByteBuffer.allocate(1024);
-		boolean initialized = false;
 		String response = null;
 		try {
+			// Initialization of the communication
+			bb.clear();
+			Future<Integer> future = channel.read(bb);
+			bb.flip();
+			byte bytes[] = new byte[future.get()];
+			bb.get(bytes);
+			System.out.println("[" + this.sessionId + "] " + new String(bytes).trim());
+			response = "jSessionId: " + this.sessionId + "\n";
+			// write initialization response to client
+			this.write(bb, response);
+			
 			do {
 				bb.clear();
-				Future<Integer> count = channel.read(bb);
+				future = channel.read(bb);
 				bb.flip();
-				byte bytes[] = new byte[count.get()];
+				bytes = new byte[future.get()];
 				bb.get(bytes);
-
-				if (!initialized) {
-					initialized = true;
-					this.sessionId = SessionGenerator.generateId();
-					response = "jSessionId: " + this.sessionId + "\n";
-				} else {
-					response = "[" + this.sessionId + "] Pong from server\n";
-				}
+				response = "[" + this.sessionId + "] Pong from server\n";
 				System.out.println("[" + this.sessionId + "] " + new String(bytes).trim());
-
-				bb.clear();
-				bb.put(response.getBytes());
-				bb.flip();
-				channel.write(bb);
+				// write response to client
+				this.write(bb, response);
 			} while (channel.isOpen());
+			
 		} catch (Exception exp) {
 			logger.log(Level.SEVERE, "ERROR from client side");
 		} finally {
@@ -94,6 +95,18 @@ public class Nio2AsyncClientManager implements Runnable {
 			}
 		}
 		logger.log(Level.INFO, "Client Manager shutdown");
+	}
+
+	/**
+	 * 
+	 * @param bb
+	 * @param response
+	 */
+	private void write(ByteBuffer bb, String response) {
+		bb.clear();
+		bb.put(response.getBytes());
+		bb.flip();
+		channel.write(bb);
 	}
 
 	/**
