@@ -95,7 +95,7 @@ public class Nio2AsyncServer {
 			logger.info("Waiting for new connections...");
 			Future<AsynchronousSocketChannel> future = listener.accept();
 			final AsynchronousSocketChannel channel = future.get();
-			
+
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
 			channel.read(buffer, channel, new CompletionHandlerImpl(buffer));
 			/*
@@ -195,7 +195,14 @@ public class Nio2AsyncServer {
 		 */
 		@Override
 		public void failed(Throwable exc, AsynchronousSocketChannel channel) {
+			System.out.println("[" + this.sessionId + "] Operation failed");
 			exc.printStackTrace();
+			try {
+				System.out.println("[" + this.sessionId + "] Closing remote connection");
+				channel.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		/**
