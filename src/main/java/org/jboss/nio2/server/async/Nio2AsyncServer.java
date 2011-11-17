@@ -65,6 +65,7 @@ public class Nio2AsyncServer {
 
 	/**
 	 * Generate a random and unique session Id
+	 * 
 	 * @return a random and unique session Id
 	 */
 	public static String generateId() {
@@ -101,8 +102,8 @@ public class Nio2AsyncServer {
 			final AsynchronousSocketChannel channel = future.get();
 			// Generate a new session id
 			String sessionId = generateId();
-			// Initialize the session
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
+			// Initialize the session
 			initSession(channel, buffer, sessionId);
 			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, new CompletionHandlerImpl(sessionId,
 					buffer));

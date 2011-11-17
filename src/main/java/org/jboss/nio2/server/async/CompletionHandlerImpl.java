@@ -45,7 +45,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	public static final String CRLF = "\r\n";
 	private static final Logger logger = Logger.getLogger(CompletionHandler.class.getName());
 	private String sessionId;
-	private ByteBuffer byteBuffer;
+	private ByteBuffer readBuffer;
+	private ByteBuffer writeBuffer;
 
 	/**
 	 * Create a new instance of {@code CompletionHandlerImpl}
@@ -55,7 +56,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 */
 	public CompletionHandlerImpl(String sessionId, ByteBuffer byteBuffer) {
 		this.sessionId = sessionId;
-		this.byteBuffer = byteBuffer;
+		this.readBuffer = byteBuffer;
+		this.writeBuffer = ByteBuffer.allocate(8 * 1024);
 	}
 
 	/*
@@ -67,10 +69,10 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	@Override
 	public void completed(Integer nBytes, AsynchronousSocketChannel channel) {
 		if (nBytes > 0) {
-			byteBuffer.flip();
+			readBuffer.flip();
 			byte bytes[] = new byte[nBytes];
-			byteBuffer.get(bytes);
-			byteBuffer.clear();
+			readBuffer.get(bytes);
+			readBuffer.clear();
 			System.out.println("[" + this.sessionId + "] " + new String(bytes).trim());
 
 			try {
@@ -82,7 +84,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			}
 		}
 		// Read again with the this CompletionHandler
-		channel.read(byteBuffer, Nio2AsyncServer.TIMEOUT, Nio2AsyncServer.TIME_UNIT, channel, this);
+		channel.read(readBuffer, Nio2AsyncServer.TIMEOUT, Nio2AsyncServer.TIME_UNIT, channel, this);
 	}
 
 	/*
@@ -116,7 +118,11 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		// BufferedReader in = new BufferedReader(new
 		// InputStreamReader(fis));
 
-		ByteBuffer buffer = ByteBuffer.allocate(8 * 1024);
+		File file = new File("data/file.txt");
+		if (file.exists()) {
+			System.out.println("File exists -> " + file.getAbsolutePath());
+		}
+
 		try {
 			int nBytes = -1;
 			byte bytes[] = new byte[8 * 1024];
@@ -125,17 +131,17 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 
 			while ((nBytes = fis.read(bytes)) != -1) {
 
-				if (buffer.remaining() >= nBytes) {
-					buffer.put(bytes);
+				if (this.writeBuffer.remaining() >= nBytes) {
+					this.writeBuffer.put(bytes);
 				} else {
-					off = buffer.remaining();
+					off = this.writeBuffer.remaining();
 					remain = nBytes - off;
-					buffer.put(bytes, 0, off);
+					this.writeBuffer.put(bytes, 0, off);
 				}
 				// write data to the channel when the buffer is full
-				if (!buffer.hasRemaining()) {
-					write(channel, buffer);
-					buffer.put(bytes, off, remain);
+				if (!this.writeBuffer.hasRemaining()) {
+					write(channel, this.writeBuffer);
+					this.writeBuffer.put(bytes, off, remain);
 					remain = 0;
 				}
 			}
@@ -153,12 +159,12 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			 */
 
 			// If still some data to write
-			if (buffer.remaining() < buffer.capacity()) {
-				write(channel, buffer);
+			if (this.writeBuffer.remaining() < this.writeBuffer.capacity()) {
+				write(channel, this.writeBuffer);
 			}
 			// write the CRLF characters
-			buffer.put(CRLF.getBytes());
-			write(channel, buffer);
+			this.writeBuffer.put(CRLF.getBytes());
+			write(channel, this.writeBuffer);
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
