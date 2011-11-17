@@ -21,21 +21,18 @@
  */
 package org.jboss.nio2.server.async;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.CompletionHandler;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.jboss.logging.Logger;
 
 /**
  * {@code NioAsyncServer}
@@ -46,10 +43,17 @@ import java.util.logging.Logger;
  */
 public class Nio2AsyncServer {
 
+	/**
+	 * 
+	 */
+	public static final String CRLF = "\r\n";
+	/**
+	 * 
+	 */
 	public static final int SERVER_PORT = 8081;
 	private static final Logger logger = Logger.getLogger(Nio2AsyncServer.class.getName());
-	private static final long TIMEOUT = 20;
-	private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
+	protected static final long TIMEOUT = 20;
+	protected static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
 	private static final ExecutorService pool = Executors.newFixedThreadPool(400);
 
 	/**
@@ -60,8 +64,8 @@ public class Nio2AsyncServer {
 	}
 
 	/**
-	 * 
-	 * @return
+	 * Generate a random and unique session Id
+	 * @return a random and unique session Id
 	 */
 	public static String generateId() {
 		UUID uuid = UUID.randomUUID();
@@ -70,7 +74,7 @@ public class Nio2AsyncServer {
 
 	/**
 	 * @param args
-	 * @throws IOException
+	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
 
@@ -79,229 +83,57 @@ public class Nio2AsyncServer {
 			try {
 				port = Integer.valueOf(args[0]);
 			} catch (NumberFormatException e) {
-				logger.log(Level.SEVERE, e.getMessage(), e);
+				logger.error(e.getMessage(), e);
 			}
 		}
 
-		logger.log(Level.INFO, "Starting NIO2 Synchronous Sever on port {0} ...", port);
+		logger.infov("Starting NIO2 Synchronous Sever on port %s ...", port);
 		AsynchronousChannelGroup threadGroup = AsynchronousChannelGroup.withThreadPool(pool);
 		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open(
 				threadGroup).bind(new InetSocketAddress(port));
 
 		boolean running = true;
-		logger.log(Level.INFO, "Asynchronous Sever started...");
+		logger.info("Asynchronous Sever started...");
 
 		while (running) {
 			logger.info("Waiting for new connections...");
 			Future<AsynchronousSocketChannel> future = listener.accept();
 			final AsynchronousSocketChannel channel = future.get();
-
+			// Generate a new session id
+			String sessionId = generateId();
+			// Initialize the session
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
-			channel.read(buffer, channel, new CompletionHandlerImpl(buffer));
-			/*
-			 * final ByteBuffer buffer = ByteBuffer.allocate(512); final
-			 * CompletionHandlerImpl handler = new
-			 * CompletionHandlerImpl(buffer); final RequestManager manager = new
-			 * RequestManager(channel, buffer, handler);
-			 */
-
-			/*
-			 * Nio2AsyncClientManager manager = new
-			 * Nio2AsyncClientManager(channel);
-			 * manager.setSessionId(generateId()); pool.execute(manager);
-			 */
+			initSession(channel, buffer, sessionId);
+			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, new CompletionHandlerImpl(sessionId,
+					buffer));
 		}
 
 		listener.close();
 	}
 
 	/**
-	 * {@code CompletionHandlerImpl}
 	 * 
-	 * Created on Nov 9, 2011 at 9:08:18 AM
-	 * 
-	 * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
+	 * @param channel
+	 * @param buffer
+	 * @param sessionId
+	 * @throws Exception
 	 */
-	private static class CompletionHandlerImpl implements
-			CompletionHandler<Integer, AsynchronousSocketChannel> {
-
-		boolean initialized = false;
-		private String response;
-		private String sessionId;
-		private final ByteBuffer buffer;
-		private RequestManager manager;
-
-		/**
-		 * Create a new instance of {@code CompletionHandlerImpl}
-		 */
-		public CompletionHandlerImpl(ByteBuffer buffer) {
-			this.buffer = buffer;
-		}
-
-		/**
-		 * Create a new instance of {@code CompletionHandlerImpl}
-		 * 
-		 * @param buffer
-		 * @param manager
-		 */
-		public CompletionHandlerImpl(ByteBuffer buffer, RequestManager manager) {
-			this.buffer = buffer;
-			this.manager = manager;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.nio.channels.CompletionHandler#completed(java.lang.Object,
-		 * java.lang.Object)
-		 */
-		@Override
-		public void completed(Integer nBytes, AsynchronousSocketChannel channel) {
-			if (nBytes > 0) {
-				byte bytes[] = new byte[nBytes];
-				buffer.flip();
-				buffer.get(bytes);
-
-				if (!initialized) {
-					this.sessionId = generateId();
-					this.initialized = true;
-					response = "JSESSION_ID: " + sessionId + "\n";
-				} else {
-					response = "[" + this.sessionId + "] Pong from server\n";
-				}
-				System.out.println("[" + this.sessionId + "] " + new String(bytes).trim());
-				buffer.clear();
-				buffer.put(response.getBytes());
-				buffer.flip();
-				channel.write(buffer);
-				buffer.clear();
-
-				/*
-				 * if (this.manager == null) { this.manager = new
-				 * RequestManager(channel, buffer, this); }
-				 * 
-				 * pool.execute(manager); return;
-				 */
-			}
-			// Read again with the this CompletionHandler
-			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, this);
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.nio.channels.CompletionHandler#failed(java.lang.Throwable,
-		 * java.lang.Object)
-		 */
-		@Override
-		public void failed(Throwable exc, AsynchronousSocketChannel channel) {
-			System.out.println("[" + this.sessionId + "] Operation failed");
-			exc.printStackTrace();
-			try {
-				System.out.println("[" + this.sessionId + "] Closing remote connection");
-				channel.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		/**
-		 * 
-		 * @param initialized
-		 */
-		public void setInitialized(boolean initialized) {
-			this.initialized = initialized;
-		}
+	protected static void initSession(AsynchronousSocketChannel channel, ByteBuffer buffer,
+			String sessionId) throws Exception {
+		buffer.clear();
+		Future<Integer> future = channel.read(buffer);
+		int nBytes = future.get();
+		buffer.flip();
+		byte bytes[] = new byte[nBytes];
+		buffer.get(bytes);
+		System.out.println("[" + sessionId + "] " + new String(bytes).trim());
+		String response = "jSessionId: " + sessionId + CRLF;
+		// write initialization response to client
+		buffer.clear();
+		buffer.put(response.getBytes());
+		buffer.flip();
+		channel.write(buffer);
+		buffer.clear();
 	}
 
-	/**
-	 * {@code RequestManager}
-	 * 
-	 * Created on Nov 9, 2011 at 1:12:42 PM
-	 * 
-	 * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
-	 */
-	private static class RequestManager implements Runnable {
-
-		private AsynchronousSocketChannel channel;
-		private ByteBuffer buffer;
-		private CompletionHandlerImpl handler;
-
-		/**
-		 * Create a new instance of {@code RequestManager}
-		 */
-		public RequestManager() {
-			super();
-		}
-
-		/**
-		 * Create a new instance of {@code RequestManager}
-		 * 
-		 * @param channel
-		 * @param buffer
-		 */
-		public RequestManager(AsynchronousSocketChannel channel, ByteBuffer buffer,
-				CompletionHandlerImpl handler) {
-			this.channel = channel;
-			this.buffer = buffer;
-			this.handler = handler;
-			this.handler.manager = this;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.lang.Runnable#run()
-		 */
-		@Override
-		public void run() {
-
-			String response = null;
-			while (true) {
-				Future<Integer> count = channel.read(buffer);
-				try {
-					int x = count.get(1, TimeUnit.MILLISECONDS);
-					if (x > 0) {
-						buffer.flip();
-						byte bytes[] = new byte[x];
-						buffer.get(bytes);
-
-						if (!this.handler.initialized) {
-							this.handler.sessionId = generateId();
-							response = "JSESSION_ID: " + this.handler.sessionId + "\n";
-							this.handler.initialized = true;
-						} else {
-							response = "[" + this.handler.sessionId + "] Pong from server\n";
-						}
-
-						System.out.println("[" + this.handler.sessionId + "] "
-								+ new String(bytes).trim());
-
-						this.write(response);
-					} else {
-						throw new Exception("Connection closed remotely");
-					}
-				} catch (TimeoutException e) {
-					if (count.cancel(false)) {
-						System.out.println("Future canceled successfully");
-						// Delegate the read operation to completion handler
-						channel.read(buffer, TIMEOUT, TIME_UNIT, channel, handler);
-						// channel.read(buffer, channel, this);
-					}
-					break;
-				} catch (Exception exp) {
-					exp.printStackTrace();
-					break;
-				}
-			}
-		}
-
-		public void write(String data) {
-			buffer.clear();
-			buffer.put(data.getBytes());
-			buffer.flip();
-			channel.write(buffer);
-			buffer.clear();
-		}
-	}
 }
