@@ -21,9 +21,8 @@
  */
 package org.jboss.nio2.client;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -33,14 +32,27 @@ import java.util.Random;
 /**
  * {@code JioClient}
  * 
- * Created on Nov 3, 2011 at 5:12:59 PM
+ * Created on Nov 11, 2011 at 3:38:26 PM
  * 
  * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
  */
 public class JioClient extends Thread {
 
+	/**
+	 * 
+	 */
+	public static final String CRLF = "\r\n";
+	/**
+	 * 
+	 */
 	public static final int MAX = 1000;
+	/**
+	 * 
+	 */
 	public static final int N_THREADS = 100;
+	/**
+	 * 
+	 */
 	public static final int DEFAULT_DELAY = 1000; // default wait delay 1000ms
 	private long max_time = Long.MIN_VALUE;
 	private long min_time = Long.MAX_VALUE;
@@ -52,7 +64,8 @@ public class JioClient extends Thread {
 	private Socket channel;
 	private String sessionId;
 	private OutputStream os;
-	private BufferedReader br;
+	// private BufferedReader br;
+	private InputStream dis;
 
 	/**
 	 * Create a new instance of {@code JioClient}
@@ -83,11 +96,15 @@ public class JioClient extends Thread {
 	@Override
 	public void run() {
 		try {
+			long total_running_time = System.currentTimeMillis();
 			// Initialize the communication between client and server
 			init();
 			// wait for 2 seconds until all threads are ready
 			sleep(2 * DEFAULT_DELAY);
 			runit();
+			total_running_time = System.currentTimeMillis() - total_running_time;
+			System.out.println("[Thread-" + getId() + "] Total running time: " + total_running_time
+					+ " ms");
 		} catch (Exception exp) {
 			System.err.println("Exception: " + exp.getMessage());
 			exp.printStackTrace();
@@ -111,7 +128,9 @@ public class JioClient extends Thread {
 		// Open connection with server
 		this.channel = new Socket(this.hostname, this.port);
 		this.os = this.channel.getOutputStream();
-		this.br = new BufferedReader(new InputStreamReader(this.channel.getInputStream()));
+		// this.br = new BufferedReader(new
+		// InputStreamReader(this.channel.getInputStream()));
+		this.dis = this.channel.getInputStream();
 	}
 
 	/**
@@ -125,8 +144,9 @@ public class JioClient extends Thread {
 		this.connect(socketAddress);
 		System.out.println("Connection to server established");
 		System.out.println("Initializing communication...");
-		write("POST /session-" + getId() + "\n");
+		write("POST /session-" + getId() + CRLF);
 		String response = read();
+		System.out.println("HEADER: " + response);
 		String tab[] = response.split("\\s+");
 		this.sessionId = tab[1];
 		System.out.println("Communication intialized -> Session ID:" + this.sessionId);
@@ -144,16 +164,17 @@ public class JioClient extends Thread {
 		long time = 0;
 		String response = null;
 		int counter = 0;
-
 		int min_count = 10 * 1000 / delay;
 		int max_count = 50 * 1000 / delay;
+		long running_time = System.currentTimeMillis();
 		while ((this.max--) > 0) {
 			sleep(this.delay);
 			time = System.currentTimeMillis();
 			write("Ping from client " + getId() + "\n");
 			response = read();
 			time = System.currentTimeMillis() - time;
-			System.out.println("[Thread-" + getId() + "] Received from server -> " + response);
+			// System.out.println("[Thread-" + getId() +
+			// "] Received from server -> " + response);
 			// update the maximum response time
 			if (time > max_time) {
 				max_time = time;
@@ -168,7 +189,8 @@ public class JioClient extends Thread {
 			}
 			counter++;
 		}
-
+		running_time = System.currentTimeMillis() - running_time;
+		System.out.println("[Thread-" + getId() + "] Running time: " + running_time + " ms");
 		avg_time /= (max_count - min_count + 1);
 		// For each thread print out the maximum, minimum and average response
 		// times
@@ -187,15 +209,32 @@ public class JioClient extends Thread {
 
 	/**
 	 * 
-	 * @return
+	 * @return data received from server
 	 * @throws Exception
 	 */
 	public String read() throws Exception {
-		return this.br.readLine();
+		// return this.br.readLine();
+
+		byte bytes[] = new byte[1024];
+		int nBytes = -1;
+		String tmp = null;
+		StringBuffer sb = new StringBuffer();
+
+		while ((nBytes = this.dis.read(bytes)) != -1) {
+			tmp = new String(bytes, 0, nBytes);
+			sb.append(tmp);
+			if (tmp.endsWith(CRLF)) {
+				break;
+			}
+		}
+
+		return sb.toString();
 	}
 
 	/**
+	 * 
 	 * @param args
+	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
 
