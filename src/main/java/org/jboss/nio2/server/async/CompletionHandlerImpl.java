@@ -73,11 +73,13 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	@Override
 	public void completed(Integer nBytes, AsynchronousSocketChannel channel) {
 		if (nBytes > 0) {
+			System.out.println(" -> Start read");
 			readBuffer.flip();
 			byte bytes[] = new byte[nBytes];
 			readBuffer.get(bytes);
 			readBuffer.clear();
 			System.out.println("[" + this.sessionId + "] " + new String(bytes).trim());
+			System.out.println(" -> End read");
 
 			try {
 				// write response to client
@@ -169,7 +171,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 */
 	protected void write(AsynchronousSocketChannel channel, ByteBuffer[] buffers) throws Exception {
 
-		System.out.println("\t-> Start write");
+		System.out.println("\t\t-> Start write");
 
 		for (int i = 0; i < buffers.length; i++) {
 			buffers[i].flip();
@@ -188,6 +190,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 						exc.printStackTrace();
 					}
 				});
+		System.out.println("\t\t-> End write");
+
 	}
 
 	/**
@@ -200,12 +204,11 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 * @throws IOException
 	 */
 	protected void write(AsynchronousSocketChannel channel, ByteBuffer byteBuffer) throws Exception {
-		System.out.println("\t-> Start write");
-
+		System.out.println("\t\t-> Start write");
 		byteBuffer.flip();
 		Future<Integer> count = channel.write(byteBuffer);
 		int written = count.get();
 		byteBuffer.clear();
-		System.out.println("\t-> End write");
+		System.out.println("\t\t-> End write");
 	}
 }
