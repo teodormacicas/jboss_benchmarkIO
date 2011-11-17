@@ -75,16 +75,13 @@ class JioClientManager implements Runnable {
 			initSession();
 			String request = null;
 			while ((request = this.read()) != null) {
-				request = this.read();
 				System.out.println("[" + this.sessionId + "] " + request.trim());
 				writeResponse();
 			}
+			logger.info("Connection closed remotely");
+			this.socket.close();
 		} catch (Exception e) {
-			try {
-				this.socket.close();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
+			logger.error(e.getMessage(), e);
 		}
 	}
 

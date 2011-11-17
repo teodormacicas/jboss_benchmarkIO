@@ -145,7 +145,6 @@ public class JioClient extends Thread {
 		System.out.println("Initializing communication...");
 		write("POST /session-" + getId() + CRLF);
 		String response = read();
-		System.out.println("HEADER: " + response);
 		String tab[] = response.split("\\s+");
 		this.sessionId = tab[1];
 		System.out.println("Communication intialized -> Session ID:" + this.sessionId);
@@ -168,7 +167,7 @@ public class JioClient extends Thread {
 		while ((this.max--) > 0) {
 			sleep(this.delay);
 			time = System.currentTimeMillis();
-			write("Ping from client " + getId() + "\n");
+			write("GET /data/file.txt " + CRLF);
 			response = read();
 			time = System.currentTimeMillis() - time;
 			// System.out.println("[Thread-" + getId() +

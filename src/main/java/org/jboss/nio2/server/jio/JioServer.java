@@ -98,9 +98,6 @@ public class JioServer {
 			logger.info("New connection accepted");
 
 			JioClientManager manager = new JioClientManager(socket);
-			String sessionId = generateId();
-			initSession(socket, sessionId);
-			manager.setSessionId(sessionId);
 			pool.execute(manager);
 		}
 
