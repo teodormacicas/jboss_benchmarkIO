@@ -136,7 +136,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 
 			while ((nBytes = sbc.read(writeBuffer)) > 0) {
 				writeBuffer.rewind();
-				channel.write(writeBuffer);
+				Future<Integer> count = channel.write(writeBuffer);
+				count.get();
 				writeBuffer.flip();
 			}
 
