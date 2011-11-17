@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
+import java.util.concurrent.Future;
 
 import org.jboss.logging.Logger;
 
@@ -183,10 +184,10 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 *            the data that will be written to the channel
 	 * @throws IOException
 	 */
-	protected void write(AsynchronousSocketChannel channel, ByteBuffer byteBuffer)
-			throws IOException {
+	protected void write(AsynchronousSocketChannel channel, ByteBuffer byteBuffer) throws Exception {
 		byteBuffer.flip();
-		channel.write(byteBuffer);
+		Future<Integer> count = channel.write(byteBuffer);
+		int written = count.get();
 		byteBuffer.clear();
 	}
 }
