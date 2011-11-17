@@ -71,11 +71,10 @@ class JioClientManager implements Runnable {
 	 */
 	@Override
 	public void run() {
-		boolean running = true;
 		try {
 			initSession();
 			String request = null;
-			while (running) {
+			while ((request = this.read()) != null) {
 				request = this.read();
 				System.out.println("[" + this.sessionId + "] " + request.trim());
 				writeResponse();
@@ -129,7 +128,6 @@ class JioClientManager implements Runnable {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
 		} finally {
-			sbc?.close();
 			if (sbc != null) {
 				sbc.close();
 			}
