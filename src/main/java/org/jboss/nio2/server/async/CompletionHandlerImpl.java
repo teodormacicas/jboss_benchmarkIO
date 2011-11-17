@@ -22,7 +22,6 @@
 package org.jboss.nio2.server.async;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -120,61 +119,16 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 */
 	protected void writeResponse(AsynchronousSocketChannel channel) throws Exception {
 
-		FileInputStream fis = new FileInputStream("data" + File.separatorChar + "file.txt");
-		// BufferedReader in = new BufferedReader(new
-		// InputStreamReader(fis));
-
-		File file = new File("data/file.txt");
+		File file = new File("data" + File.separatorChar + "file.txt");
 		Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
 		SeekableByteChannel sbc = null;
 		try {
 			sbc = Files.newByteChannel(path, StandardOpenOption.READ);
-			int nBytes = -1;
-			byte bytes[] = new byte[8 * 1024];
-			int off = 0;
-			int remain = 0;
-
-			while ((nBytes = sbc.read(writeBuffer)) > 0) {
-				writeBuffer.rewind();
-				Future<Integer> count = channel.write(writeBuffer);
-				count.get();
-				writeBuffer.flip();
+			// Read from file and write to the asynchronous socket channel
+			while (sbc.read(writeBuffer) > 0) {
+				write(channel, writeBuffer);
 			}
 
-			/*
-			while ((nBytes = fis.read(bytes)) != -1) {
-
-				if (this.writeBuffer.remaining() >= nBytes) {
-					this.writeBuffer.put(bytes);
-				} else {
-					off = this.writeBuffer.remaining();
-					remain = nBytes - off;
-					this.writeBuffer.put(bytes, 0, off);
-				}
-				// write data to the channel when the buffer is full
-				if (!this.writeBuffer.hasRemaining()) {
-					write(channel, this.writeBuffer);
-					this.writeBuffer.put(bytes, off, remain);
-					remain = 0;
-				}
-			}
-		    */
-			/*
-			 * while ((line = in.readLine()) != null) { int length =
-			 * line.length();
-			 * 
-			 * if (buffer.remaining() >= length) { buffer.put(line.getBytes());
-			 * } else { off = buffer.remaining(); remain = length - off;
-			 * buffer.put(line.getBytes(), 0, off); } // write data to the
-			 * channel when the buffer is full if (!buffer.hasRemaining()) {
-			 * write(channel, buffer); buffer.put(line.getBytes(), off, remain);
-			 * remain = 0; } }
-			 */
-
-			// If still some data to write
-			if (this.writeBuffer.remaining() < this.writeBuffer.capacity()) {
-				write(channel, this.writeBuffer);
-			}
 			// write the CRLF characters
 			this.writeBuffer.put(CRLF.getBytes());
 			write(channel, this.writeBuffer);
@@ -182,9 +136,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
 		} finally {
-			// in.close();
-			fis.close();
-			if(sbc != null) {
+			if (sbc != null) {
 				sbc.close();
 			}
 		}
