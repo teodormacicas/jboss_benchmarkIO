@@ -147,10 +147,6 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			buffers[buffers.length - 1].put(CRLF.getBytes());
 			// Write the file content to the channel 
 			write(channel, buffers, buffers.length);
-
-			// write the CRLF characters
-			this.writeBuffer.put(CRLF.getBytes());
-			write(channel, this.writeBuffer);
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
