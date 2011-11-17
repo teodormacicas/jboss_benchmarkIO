@@ -118,6 +118,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 */
 	protected void writeResponse(AsynchronousSocketChannel channel) throws Exception {
 
+		System.out.println("\t-> Start writeResponse");
+
 		File file = new File("data" + File.separatorChar + "file.txt");
 		Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
 		// SeekableByteChannel sbc = null;
@@ -132,23 +134,19 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			double tmp = 1 + ((double) fileLength / BUFFER_SIZE);
 			int x = (int) tmp;
 			int length = (tmp - x > 0) ? x + 1 : x;
-			
-			ByteBuffer buffer = ByteBuffer.allocate((int)fileLength + 4);
-			
+
+			ByteBuffer buffer = ByteBuffer.allocate((int) fileLength + CRLF.getBytes().length);
+
 			/*
-			ByteBuffer buffers[] = new ByteBuffer[length];
-			for (int i = 0; i < buffers.length - 1; i++) {
-				buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
-			}
-			buffers[buffers.length - 1] = ByteBuffer.allocate(16);
-			// Read the whole file in one pass
-			fileChannel.read(buffers);
-			// Add the CRLF chars to the buffers
-			buffers[buffers.length - 1].put(CRLF.getBytes());
-			// Write the file content to the channel
-			write(channel, buffers);
-			*/
-			
+			 * ByteBuffer buffers[] = new ByteBuffer[length]; for (int i = 0; i
+			 * < buffers.length - 1; i++) { buffers[i] =
+			 * ByteBuffer.allocate(BUFFER_SIZE); } buffers[buffers.length - 1] =
+			 * ByteBuffer.allocate(16); // Read the whole file in one pass
+			 * fileChannel.read(buffers); // Add the CRLF chars to the buffers
+			 * buffers[buffers.length - 1].put(CRLF.getBytes()); // Write the
+			 * file content to the channel write(channel, buffers);
+			 */
+
 			fileChannel.read(buffer);
 			buffer.put(CRLF.getBytes());
 			write(channel, buffer);
@@ -159,6 +157,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			fileChannel.close();
 			raf.close();
 		}
+		System.out.println("\t-> End writeResponse");
 	}
 
 	/**
@@ -169,6 +168,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 * @throws Exception
 	 */
 	protected void write(AsynchronousSocketChannel channel, ByteBuffer[] buffers) throws Exception {
+
+		System.out.println("\t-> Start write");
 
 		for (int i = 0; i < buffers.length; i++) {
 			buffers[i].flip();
@@ -199,9 +200,12 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 * @throws IOException
 	 */
 	protected void write(AsynchronousSocketChannel channel, ByteBuffer byteBuffer) throws Exception {
+		System.out.println("\t-> Start write");
+
 		byteBuffer.flip();
 		Future<Integer> count = channel.write(byteBuffer);
 		int written = count.get();
 		byteBuffer.clear();
+		System.out.println("\t-> End write");
 	}
 }
