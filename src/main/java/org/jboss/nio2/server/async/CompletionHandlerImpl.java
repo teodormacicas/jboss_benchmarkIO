@@ -123,29 +123,30 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 
 		File file = new File("data" + File.separatorChar + "file.txt");
 		Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
-		//SeekableByteChannel sbc = null;
+		// SeekableByteChannel sbc = null;
 		RandomAccessFile raf = new RandomAccessFile(file, "r");
 		FileChannel fileChannel = raf.getChannel();
 
 		final int BUFFER_SIZE = 8 * 1024;
 
-		ByteBuffer buffers[] = new ByteBuffer[4];
-		for (int i = 0; i < buffers.length; i++) {
-			buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
-		}
-
 		try {
-			//sbc = Files.newByteChannel(path, StandardOpenOption.READ);
-			double tmp = -1;
-			long nBytes = -1;
-			int length = 0;
-			// Read from file and write to the asynchronous socket channel
-			while ((nBytes = fileChannel.read(buffers)) > 0) {
-				tmp = (double) nBytes / BUFFER_SIZE;
-				int x = (int) tmp;
-				length = (tmp - x > 0) ? x + 1 : x;
-				write(channel, buffers, length);
+			// sbc = Files.newByteChannel(path, StandardOpenOption.READ);
+			long fileLength = fileChannel.size();
+			System.out.println("fileLength : " + fileLength);
+			double tmp = (double) fileLength / BUFFER_SIZE;
+			int x = (int) tmp;
+			int length = (tmp - x > 0) ? x + 1 : x;
+			System.out.println("Length : " + length);
+			ByteBuffer buffers[] = new ByteBuffer[length + 1];
+			
+			for (int i = 0; i < buffers.length - 1; i++) {
+				buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
 			}
+			buffers[buffers.length - 1] = ByteBuffer.allocate(16);
+
+			fileChannel.read(buffers);
+			buffers[buffers.length - 1].put(CRLF.getBytes());
+			write(channel, buffers, buffers.length);
 
 			// Read from file and write to the asynchronous socket channel
 			/*
