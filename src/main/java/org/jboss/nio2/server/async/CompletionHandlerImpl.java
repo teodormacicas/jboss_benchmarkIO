@@ -27,6 +27,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.concurrent.Future;
 
 import org.jboss.logging.Logger;
@@ -120,16 +125,22 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		// InputStreamReader(fis));
 
 		File file = new File("data/file.txt");
-		if (file.exists()) {
-			System.out.println("File exists -> " + file.getAbsolutePath());
-		}
-
+		Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
+		SeekableByteChannel sbc = null;
 		try {
+			sbc = Files.newByteChannel(path, StandardOpenOption.READ);
 			int nBytes = -1;
 			byte bytes[] = new byte[8 * 1024];
 			int off = 0;
 			int remain = 0;
 
+			while ((nBytes = sbc.read(writeBuffer)) > 0) {
+				writeBuffer.rewind();
+				channel.write(writeBuffer);
+				writeBuffer.flip();
+			}
+
+			/*
 			while ((nBytes = fis.read(bytes)) != -1) {
 
 				if (this.writeBuffer.remaining() >= nBytes) {
@@ -146,7 +157,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 					remain = 0;
 				}
 			}
-
+		    */
 			/*
 			 * while ((line = in.readLine()) != null) { int length =
 			 * line.length();
@@ -172,6 +183,9 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		} finally {
 			// in.close();
 			fis.close();
+			if(sbc != null) {
+				sbc.close();
+			}
 		}
 	}
 
