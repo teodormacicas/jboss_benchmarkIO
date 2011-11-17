@@ -180,7 +180,17 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		}
 
 		channel.write(buffers, 0, length, Nio2AsyncServer.TIMEOUT, Nio2AsyncServer.TIME_UNIT, null,
-				null);
+				new CompletionHandler<Long, Void>() {
+					@Override
+					public void completed(Long result, Void attachment) {
+						// Nothing to do
+					}
+
+					@Override
+					public void failed(Throwable exc, Void attachment) {
+						// Nothing to do
+					}
+				});
 
 		for (int i = 0; i < length; i++) {
 			buffers[i].clear();
