@@ -28,11 +28,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.nio.channels.FileChannel;
-import java.nio.channels.SeekableByteChannel;
 import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.concurrent.Future;
 
 import org.jboss.logging.Logger;
@@ -102,7 +99,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 */
 	@Override
 	public void failed(Throwable exc, AsynchronousSocketChannel channel) {
-		System.out.println("[" + this.sessionId + "] Operation failed");
+		System.out.println("[" + this.sessionId + "] Read Operation failed");
 		exc.printStackTrace();
 		try {
 			System.out.println("[" + this.sessionId + "] Closing remote connection");
@@ -178,7 +175,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 
 					@Override
 					public void failed(Throwable exc, Void attachment) {
-						// Nothing to do
+						logger.error("WRITE OPERATION FAILED : " + exc.getMessage(), exc);
+						exc.printStackTrace();
 					}
 				});
 	}
