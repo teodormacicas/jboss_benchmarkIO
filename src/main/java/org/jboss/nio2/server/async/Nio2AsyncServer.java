@@ -88,7 +88,7 @@ public class Nio2AsyncServer {
 			}
 		}
 
-		logger.infov("Starting NIO2 Synchronous Sever on port %s ...", port);
+		logger.infof("Starting NIO2 Synchronous Sever on port %s ...", port);
 		AsynchronousChannelGroup threadGroup = AsynchronousChannelGroup.withThreadPool(pool);
 		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open(
 				threadGroup).bind(new InetSocketAddress(port));

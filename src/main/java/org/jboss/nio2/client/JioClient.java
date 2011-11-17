@@ -156,9 +156,8 @@ public class JioClient extends Thread {
 	 * @throws Exception
 	 */
 	public void runit() throws Exception {
-		// Wait a delay to ensure that all threads are ready
 		Random random = new Random();
-
+		// Wait a delay to ensure that all threads are ready
 		sleep(DEFAULT_DELAY + random.nextInt(300));
 		long time = 0;
 		String response = null;
@@ -172,7 +171,8 @@ public class JioClient extends Thread {
 			write("Ping from client " + getId() + "\n");
 			response = read();
 			time = System.currentTimeMillis() - time;
-			System.out.println("[Thread-" + getId() + "] Received from server -> " + response);
+			// System.out.println("[Thread-" + getId() +
+			// "] Received from server -> " + response);
 			// update the maximum response time
 			if (time > max_time) {
 				max_time = time;
