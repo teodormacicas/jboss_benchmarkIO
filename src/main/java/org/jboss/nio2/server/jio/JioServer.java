@@ -19,29 +19,27 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA, or see the FSF
  * site: http://www.fsf.org.
  */
-package org.jboss.nio2.server.async;
+package org.jboss.nio2.server.jio;
 
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousChannelGroup;
-import java.nio.channels.AsynchronousServerSocketChannel;
-import java.nio.channels.AsynchronousSocketChannel;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.logging.Logger;
 
 /**
- * {@code NioAsyncServer}
+ * {@code JioServer}
  * 
- * Created on Oct 27, 2011 at 5:47:30 PM
+ * Created on Nov 17, 2011 at 11:42:21 AM
  * 
  * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
  */
-public class Nio2AsyncServer {
+public class JioServer {
 
 	/**
 	 * 
@@ -51,15 +49,15 @@ public class Nio2AsyncServer {
 	 * 
 	 */
 	public static final int SERVER_PORT = 8081;
-	private static final Logger logger = Logger.getLogger(Nio2AsyncServer.class.getName());
+	private static final Logger logger = Logger.getLogger(JioServer.class.getName());
 	protected static final long TIMEOUT = 20;
 	protected static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
 	private static final ExecutorService pool = Executors.newFixedThreadPool(400);
 
 	/**
-	 * Create a new instance of {@code Nio2AsyncServer}
+	 * Create a new instance of {@code JioServer}
 	 */
-	public Nio2AsyncServer() {
+	public JioServer() {
 		super();
 	}
 
@@ -74,6 +72,7 @@ public class Nio2AsyncServer {
 	}
 
 	/**
+	 * 
 	 * @param args
 	 * @throws Exception
 	 */
@@ -88,25 +87,21 @@ public class Nio2AsyncServer {
 			}
 		}
 
-		logger.infov("Starting NIO2 Synchronous Sever on port {0} ...", port);
-		AsynchronousChannelGroup threadGroup = AsynchronousChannelGroup.withThreadPool(pool);
-		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open(
-				threadGroup).bind(new InetSocketAddress(port));
-
+		logger.infov("Starting JavaIO Sever on port {0} ...", port);
+		final ServerSocket listener = new ServerSocket(port);
 		boolean running = true;
-		logger.info("Asynchronous Sever started...");
+		logger.info("JavaIO Sever started...");
 
 		while (running) {
 			logger.info("Waiting for new connections...");
-			Future<AsynchronousSocketChannel> future = listener.accept();
-			final AsynchronousSocketChannel channel = future.get();
-			// Generate a new session id
+			Socket socket = listener.accept();
+			logger.info("New connection accepted");
+
+			JioClientManager manager = new JioClientManager(socket);
 			String sessionId = generateId();
-			final ByteBuffer buffer = ByteBuffer.allocate(512);
-			// Initialize the session
-			initSession(channel, buffer, sessionId);
-			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, new CompletionHandlerImpl(sessionId,
-					buffer));
+			initSession(socket, sessionId);
+			manager.setSessionId(sessionId);
+			pool.execute(manager);
 		}
 
 		listener.close();
@@ -114,27 +109,18 @@ public class Nio2AsyncServer {
 
 	/**
 	 * 
-	 * @param channel
+	 * @param socket
 	 * @param buffer
 	 * @param sessionId
 	 * @throws Exception
 	 */
-	protected static void initSession(AsynchronousSocketChannel channel, ByteBuffer buffer,
-			String sessionId) throws Exception {
-		buffer.clear();
-		Future<Integer> future = channel.read(buffer);
-		int nBytes = future.get();
-		buffer.flip();
-		byte bytes[] = new byte[nBytes];
-		buffer.get(bytes);
-		System.out.println("[" + sessionId + "] " + new String(bytes).trim());
+	protected static void initSession(Socket socket, String sessionId) throws Exception {
+		BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		String request = reader.readLine();
+		System.out.println("[" + sessionId + "] " + request);
 		String response = "jSessionId: " + sessionId + CRLF;
-		// write initialization response to client
-		buffer.clear();
-		buffer.put(response.getBytes());
-		buffer.flip();
-		channel.write(buffer);
-		buffer.clear();
+		socket.getOutputStream().write(response.getBytes());
+		socket.getOutputStream().flush();
 	}
 
 }
