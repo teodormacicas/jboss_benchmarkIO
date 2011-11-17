@@ -123,8 +123,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 
 		File file = new File("data" + File.separatorChar + "file.txt");
 		Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
-		SeekableByteChannel sbc = null;
-
+		//SeekableByteChannel sbc = null;
 		RandomAccessFile raf = new RandomAccessFile(file, "r");
 		FileChannel fileChannel = raf.getChannel();
 
@@ -136,7 +135,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		}
 
 		try {
-			sbc = Files.newByteChannel(path, StandardOpenOption.READ);
+			//sbc = Files.newByteChannel(path, StandardOpenOption.READ);
 			double tmp = -1;
 			long nBytes = -1;
 			int length = 0;
@@ -161,9 +160,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
 		} finally {
-			if (sbc != null) {
-				sbc.close();
-			}
+			fileChannel.close();
+			raf.close();
 		}
 	}
 
