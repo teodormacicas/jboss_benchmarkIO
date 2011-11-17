@@ -21,8 +21,6 @@
  */
 package org.jboss.nio2.server.jio;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.UUID;
@@ -103,21 +101,4 @@ public class JioServer {
 
 		listener.close();
 	}
-
-	/**
-	 * 
-	 * @param socket
-	 * @param buffer
-	 * @param sessionId
-	 * @throws Exception
-	 */
-	protected static void initSession(Socket socket, String sessionId) throws Exception {
-		BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		String request = reader.readLine();
-		System.out.println("[" + sessionId + "] " + request);
-		String response = "jSessionId: " + sessionId + CRLF;
-		socket.getOutputStream().write(response.getBytes());
-		socket.getOutputStream().flush();
-	}
-
 }

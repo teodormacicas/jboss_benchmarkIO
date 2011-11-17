@@ -23,9 +23,11 @@ package org.jboss.nio2.server.async;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -122,12 +124,35 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		File file = new File("data" + File.separatorChar + "file.txt");
 		Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
 		SeekableByteChannel sbc = null;
+
+		RandomAccessFile raf = new RandomAccessFile(file, "r");
+		FileChannel fileChannel = raf.getChannel();
+
+		final int BUFFER_SIZE = 8 * 1024;
+
+		ByteBuffer buffers[] = new ByteBuffer[4];
+		for (int i = 0; i < buffers.length; i++) {
+			buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
+		}
+
 		try {
 			sbc = Files.newByteChannel(path, StandardOpenOption.READ);
+			double tmp = -1;
+			long nBytes = -1;
+			int length = 0;
 			// Read from file and write to the asynchronous socket channel
-			while (sbc.read(writeBuffer) > 0) {
-				write(channel, writeBuffer);
+			while ((nBytes = fileChannel.read(buffers)) > 0) {
+				tmp = (double) nBytes / BUFFER_SIZE;
+				int x = (int) tmp;
+				length = (tmp - x > 0) ? x + 1 : x;
+				write(channel, buffers, length);
 			}
+
+			// Read from file and write to the asynchronous socket channel
+			/*
+			 * while (sbc.read(writeBuffer) > 0) { write(channel, writeBuffer);
+			 * }
+			 */
 
 			// write the CRLF characters
 			this.writeBuffer.put(CRLF.getBytes());
@@ -140,6 +165,29 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 				sbc.close();
 			}
 		}
+	}
+
+	/**
+	 * 
+	 * @param channel
+	 * @param buffers
+	 * @param length
+	 * @throws Exception
+	 */
+	protected void write(AsynchronousSocketChannel channel, ByteBuffer[] buffers, int length)
+			throws Exception {
+
+		for (int i = 0; i < length; i++) {
+			buffers[i].flip();
+		}
+
+		channel.write(buffers, 0, length, Nio2AsyncServer.TIMEOUT, Nio2AsyncServer.TIME_UNIT, null,
+				null);
+
+		for (int i = 0; i < length; i++) {
+			buffers[i].clear();
+		}
+
 	}
 
 	/**
