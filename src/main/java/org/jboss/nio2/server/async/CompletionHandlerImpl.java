@@ -146,7 +146,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			// Add the CRLF chars to the buffers
 			buffers[buffers.length - 1].put(CRLF.getBytes());
 			// Write the file content to the channel
-			write(channel, buffers, buffers.length);
+			write(channel, buffers);
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
@@ -163,15 +163,14 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 * @param length
 	 * @throws Exception
 	 */
-	protected void write(AsynchronousSocketChannel channel, ByteBuffer[] buffers, int length)
-			throws Exception {
+	protected void write(AsynchronousSocketChannel channel, ByteBuffer[] buffers) throws Exception {
 
-		for (int i = 0; i < length; i++) {
+		for (int i = 0; i < buffers.length; i++) {
 			buffers[i].flip();
 		}
 
-		channel.write(buffers, 0, length, Nio2AsyncServer.TIMEOUT, Nio2AsyncServer.TIME_UNIT, null,
-				new CompletionHandler<Long, Void>() {
+		channel.write(buffers, 0, buffers.length, Nio2AsyncServer.TIMEOUT,
+				Nio2AsyncServer.TIME_UNIT, null, new CompletionHandler<Long, Void>() {
 					@Override
 					public void completed(Long result, Void attachment) {
 						// Nothing to do
@@ -182,7 +181,6 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 						// Nothing to do
 					}
 				});
-
 	}
 
 	/**
