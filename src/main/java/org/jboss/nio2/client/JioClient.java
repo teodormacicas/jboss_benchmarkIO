@@ -212,7 +212,7 @@ public class JioClient extends Thread {
 	 */
 	public String read() throws Exception {
 		System.out.println("Start reading server response");
-		byte bytes[] = new byte[1024];
+		byte bytes[] = new byte[8 * 1024];
 		int nBytes = -1;
 		String tmp = null;
 		StringBuffer sb = new StringBuffer();
