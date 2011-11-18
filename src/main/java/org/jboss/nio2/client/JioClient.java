@@ -199,8 +199,10 @@ public class JioClient extends Thread {
 	 * @throws Exception
 	 */
 	public void write(String data) throws Exception {
+		System.out.println("Start writing request to server");
 		this.os.write(data.getBytes());
 		this.os.flush();
+		System.out.println("End writing request to server");
 	}
 
 	/**

@@ -50,7 +50,6 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	private static final Logger logger = Logger.getLogger(CompletionHandler.class.getName());
 	private String sessionId;
 	private ByteBuffer readBuffer;
-	private ByteBuffer writeBuffer;
 
 	/**
 	 * Create a new instance of {@code CompletionHandlerImpl}
@@ -61,7 +60,6 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	public CompletionHandlerImpl(String sessionId, ByteBuffer byteBuffer) {
 		this.sessionId = sessionId;
 		this.readBuffer = byteBuffer;
-		this.writeBuffer = ByteBuffer.allocate(8 * 1024);
 	}
 
 	/*
@@ -150,6 +148,12 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			 */
 
 			fileChannel.read(buffer);
+
+			System.out.println("Buffer.limit : " + buffer.limit());
+			System.out.println("Buffer.position : " + buffer.position());
+			System.out.println("Buffer.capacity : " + buffer.capacity());
+			System.out.println("Buffer.remaining : " + buffer.remaining());
+
 			buffer.put(CRLF.getBytes());
 			write(channel, buffer);
 		} catch (Exception exp) {
