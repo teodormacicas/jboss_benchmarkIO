@@ -129,30 +129,19 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		System.out.println("-> Start writeResponse");
 
 		/*
-		File file = new File("data" + File.separatorChar + "file.txt");
-		Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
-		SeekableByteChannel sbc = null;
-		ByteBuffer writeBuffer = ByteBuffer.allocate(8 * 1024);
-		try {
-			sbc = Files.newByteChannel(path, StandardOpenOption.READ);
-			// Read from file and write to the asynchronous socket channel
-			while (sbc.read(writeBuffer) > 0) {
-				write(channel, writeBuffer);
-			}
-			// write the CRLF characters
-			writeBuffer.put(CRLF.getBytes());
-			write(channel, writeBuffer);
-		} catch (Exception exp) {
-			logger.error("Exception: " + exp.getMessage(), exp);
-			exp.printStackTrace();
-		} finally {
-			if (sbc != null) {
-				sbc.close();
-			}
-		}
+		 * File file = new File("data" + File.separatorChar + "file.txt"); Path
+		 * path = FileSystems.getDefault().getPath(file.getAbsolutePath());
+		 * SeekableByteChannel sbc = null; ByteBuffer writeBuffer =
+		 * ByteBuffer.allocate(8 * 1024); try { sbc = Files.newByteChannel(path,
+		 * StandardOpenOption.READ); // Read from file and write to the
+		 * asynchronous socket channel while (sbc.read(writeBuffer) > 0) {
+		 * write(channel, writeBuffer); } // write the CRLF characters
+		 * writeBuffer.put(CRLF.getBytes()); write(channel, writeBuffer); }
+		 * catch (Exception exp) { logger.error("Exception: " +
+		 * exp.getMessage(), exp); exp.printStackTrace(); } finally { if (sbc !=
+		 * null) { sbc.close(); } }
 		 */
-		
-		
+
 		File file = new File("data" + File.separatorChar + "file.txt");
 		RandomAccessFile raf = new RandomAccessFile(file, "r");
 		FileChannel fileChannel = raf.getChannel();
@@ -160,16 +149,20 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		final int BUFFER_SIZE = 8 * 1024;
 
 		try {
-			long fileLength = fileChannel.size();
-			double tmp = 1 + ((double) fileLength / BUFFER_SIZE);
+			long fileLength = fileChannel.size() + CRLF.getBytes().length;
+			double tmp = ((double) fileLength / BUFFER_SIZE);
 			int x = (int) tmp;
-			int length = 1 + ((tmp - x > 0) ? x + 1 : x);
-
+			int length = (tmp - x > 0) ? x + 1 : x;
 			ByteBuffer buffers[] = new ByteBuffer[length];
+
+			System.out.println("fileLength = " + fileLength + ", tmp = " + tmp + ", x = " + x
+					+ ", length = " + length);
+
 			for (int i = 0; i < buffers.length - 1; i++) {
 				buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
 			}
-			buffers[buffers.length - 1] = ByteBuffer.allocate(CRLF.getBytes().length);
+
+			buffers[buffers.length - 1] = ByteBuffer.allocate((int) (fileLength - x * BUFFER_SIZE));
 			// Read the whole file in one pass
 			fileChannel.read(buffers);
 			// Add the CRLF chars to the buffers
