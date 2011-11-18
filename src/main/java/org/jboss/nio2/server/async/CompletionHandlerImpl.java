@@ -197,7 +197,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 				Nio2AsyncServer.TIME_UNIT, null, new CompletionHandler<Long, Void>() {
 					@Override
 					public void completed(Long result, Void attachment) {
-						// Nothing to do
+						logger.info("The content has been send to client");
 					}
 
 					@Override
