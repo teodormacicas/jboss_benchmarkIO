@@ -154,7 +154,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			int x = (int) tmp;
 			int length = (tmp - x > 0) ? x + 1 : x;
 			ByteBuffer buffers[] = new ByteBuffer[length];
-
+			System.out.println("fileChannel.size() = " + fileChannel.size());
 			System.out.println("fileLength = " + fileLength + ", tmp = " + tmp + ", x = " + x
 					+ ", length = " + length);
 
