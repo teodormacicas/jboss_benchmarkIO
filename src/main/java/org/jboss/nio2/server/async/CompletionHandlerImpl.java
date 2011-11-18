@@ -23,14 +23,13 @@ package org.jboss.nio2.server.async;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.nio.channels.SeekableByteChannel;
+import java.nio.channels.FileChannel;
 import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.concurrent.Future;
 
 import org.jboss.logging.Logger;
@@ -129,6 +128,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 
 		System.out.println("-> Start writeResponse");
 
+		/*
 		File file = new File("data" + File.separatorChar + "file.txt");
 		Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
 		SeekableByteChannel sbc = null;
@@ -150,32 +150,40 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 				sbc.close();
 			}
 		}
-
-		/*
-		 * File file = new File("data" + File.separatorChar + "file.txt"); Path
-		 * path = FileSystems.getDefault().getPath(file.getAbsolutePath()); //
-		 * SeekableByteChannel sbc = null; RandomAccessFile raf = new
-		 * RandomAccessFile(file, "r"); FileChannel fileChannel =
-		 * raf.getChannel();
-		 * 
-		 * final int BUFFER_SIZE = 8 * 1024;
-		 * 
-		 * try { // sbc = Files.newByteChannel(path, StandardOpenOption.READ);
-		 * long fileLength = fileChannel.size(); double tmp = 1 + ((double)
-		 * fileLength / BUFFER_SIZE); int x = (int) tmp; int length = (tmp - x >
-		 * 0) ? x + 1 : x;
-		 * 
-		 * ByteBuffer buffers[] = new ByteBuffer[length]; for (int i = 0; i <
-		 * buffers.length - 1; i++) { buffers[i] =
-		 * ByteBuffer.allocate(BUFFER_SIZE); } buffers[buffers.length - 1] =
-		 * ByteBuffer.allocate(CRLF.getBytes().length); // Read the whole file
-		 * in one pass fileChannel.read(buffers); // Add the CRLF chars to the
-		 * buffers buffers[buffers.length - 1].put(CRLF.getBytes()); // Write
-		 * the file content to the channel write(channel, buffers); } catch
-		 * (Exception exp) { logger.error("Exception: " + exp.getMessage(),
-		 * exp); exp.printStackTrace(); } finally { fileChannel.close();
-		 * raf.close(); }
 		 */
+		
+		
+		File file = new File("data" + File.separatorChar + "file.txt");
+		RandomAccessFile raf = new RandomAccessFile(file, "r");
+		FileChannel fileChannel = raf.getChannel();
+
+		final int BUFFER_SIZE = 8 * 1024;
+
+		try {
+			long fileLength = fileChannel.size();
+			double tmp = 1 + ((double) fileLength / BUFFER_SIZE);
+			int x = (int) tmp;
+			int length = (tmp - x > 0) ? x + 1 : x;
+
+			ByteBuffer buffers[] = new ByteBuffer[length];
+			for (int i = 0; i < buffers.length - 1; i++) {
+				buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
+			}
+			buffers[buffers.length - 1] = ByteBuffer.allocate(CRLF.getBytes().length);
+			// Read the whole file in one pass
+			fileChannel.read(buffers);
+			// Add the CRLF chars to the buffers
+			buffers[buffers.length - 1].put(CRLF.getBytes());
+			// Write the file content to the channel
+			write(channel, buffers);
+		} catch (Exception exp) {
+			logger.error("Exception: " + exp.getMessage(), exp);
+			exp.printStackTrace();
+		} finally {
+			fileChannel.close();
+			raf.close();
+		}
+
 		System.out.println("-> End writeResponse");
 	}
 
