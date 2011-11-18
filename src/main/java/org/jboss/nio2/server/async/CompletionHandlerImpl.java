@@ -163,7 +163,6 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			// Read the whole file in one pass
 			fileChannel.read(buffers);
 			// Add the CRLF chars to the buffers
-			buffers[buffers.length - 1].flip();
 			buffers[buffers.length - 1].put(CRLF.getBytes());			
 			// Write the file content to the channel
 			write(channel, buffers);
@@ -197,7 +196,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 				Nio2AsyncServer.TIME_UNIT, null, new CompletionHandler<Long, Void>() {
 					@Override
 					public void completed(Long result, Void attachment) {
-						logger.info("The content has been send to client");
+						logger.info("The content has been sent to client");
 					}
 
 					@Override
