@@ -218,7 +218,7 @@ public class JioClient extends Thread {
 		int counter = 0;
 		while ((nBytes = this.is.read(bytes)) != -1) {
 			tmp = new String(bytes, 0, nBytes);
-			System.out.println("counter = " + (++counter));
+			System.out.println("counter = " + (++counter) + ", nBytes = " + nBytes);
 			sb.append(tmp);
 			if (tmp.endsWith(CRLF)) {
 				System.out.println("\n**** CRLF attemped ****");

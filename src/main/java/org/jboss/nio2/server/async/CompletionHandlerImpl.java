@@ -149,7 +149,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		final int BUFFER_SIZE = 8 * 1024;
 
 		try {
-			long fileLength = fileChannel.size() + CRLF.getBytes().length + 1;
+			long fileLength = fileChannel.size() + CRLF.getBytes().length;
 			double tmp = (double) fileLength / BUFFER_SIZE;
 			int length = (int) Math.ceil(tmp);
 			ByteBuffer buffers[] = new ByteBuffer[length];
@@ -163,6 +163,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			// Read the whole file in one pass
 			fileChannel.read(buffers);
 			// Add the CRLF chars to the buffers
+			buffers[buffers.length - 1].flip();
 			buffers[buffers.length - 1].put(CRLF.getBytes());			
 			// Write the file content to the channel
 			write(channel, buffers);
