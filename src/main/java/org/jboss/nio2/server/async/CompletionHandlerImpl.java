@@ -167,20 +167,9 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			buffers[buffers.length - 1] = ByteBuffer.allocate(temp);
 			// Read the whole file in one pass
 			long nBytes = fileChannel.read(buffers);
-			System.out.println("Bytes read = " + nBytes + ", remain");
-
-			for (int i = 0; i < buffers.length; i++) {
-				System.out.println("buffers[" + i + "] ramain : " + buffers[i].remaining());
-			}
-			System.out.println("------------------------");
+			System.out.println("Bytes read = " + nBytes);
 			// Add the CRLF chars to the buffers
-			buffers[buffers.length - 1].put(CRLF.getBytes());
-
-			for (int i = 0; i < buffers.length; i++) {
-				System.out.println("buffers[" + i + "] ramain : " + buffers[i].remaining());
-			}
-
-			
+			buffers[buffers.length - 1].put(CRLF.getBytes());			
 			// Write the file content to the channel
 			write(channel, buffers);
 		} catch (Exception exp) {

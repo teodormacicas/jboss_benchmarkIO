@@ -222,6 +222,7 @@ public class JioClient extends Thread {
 			System.out.println("\t-> tmp = " + tmp);
 			sb.append(tmp);
 			if (tmp.endsWith(CRLF)) {
+				System.out.println("CRLF attemped");
 				break;
 			}
 		}
