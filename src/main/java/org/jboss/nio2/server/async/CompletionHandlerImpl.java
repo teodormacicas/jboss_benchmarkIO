@@ -132,16 +132,13 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		File file = new File("data" + File.separatorChar + "file.txt");
 		Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
 		SeekableByteChannel sbc = null;
-		ByteBuffer writeBuffer = ByteBuffer.allocate(2 * 8 * 1024);
+		ByteBuffer writeBuffer = ByteBuffer.allocate(8 * 1024);
 		try {
 			sbc = Files.newByteChannel(path, StandardOpenOption.READ);
 			// Read from file and write to the asynchronous socket channel
-			int counter = 0;
 			while (sbc.read(writeBuffer) > 0) {
-				counter++;
 				write(channel, writeBuffer);
 			}
-			System.out.println("Number of reads: " + counter);
 			// write the CRLF characters
 			writeBuffer.put(CRLF.getBytes());
 			write(channel, writeBuffer);
