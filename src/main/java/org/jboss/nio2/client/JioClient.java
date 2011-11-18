@@ -217,12 +217,13 @@ public class JioClient extends Thread {
 		String tmp = null;
 		StringBuffer sb = new StringBuffer();
 
+		int counter = 0;
 		while ((nBytes = this.dis.read(bytes)) != -1) {
 			tmp = new String(bytes, 0, nBytes);
-			System.out.println("\t-> tmp = " + tmp);
+			System.out.println("counter = " + (++counter));
 			sb.append(tmp);
-			if (tmp.endsWith(sessionId)) {
-				System.out.println("End attemped");
+			if (tmp.endsWith(CRLF)) {
+				System.out.println("\n**** CRLF attemped ****");
 				break;
 			}
 		}
