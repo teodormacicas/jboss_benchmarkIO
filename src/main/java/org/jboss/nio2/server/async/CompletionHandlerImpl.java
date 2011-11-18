@@ -149,7 +149,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		final int BUFFER_SIZE = 8 * 1024;
 
 		try {
-			long fileLength = fileChannel.size();// + CRLF.getBytes().length;
+			long fileLength = fileChannel.size() + CRLF.getBytes().length;
 			double tmp = ((double) fileLength / BUFFER_SIZE);
 			int x = (int) tmp;
 			int length = (tmp - x > 0) ? x + 1 : x;
@@ -160,17 +160,14 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			}
 
 			int temp = (int) (fileLength - x * BUFFER_SIZE);
+			System.out.println("temp = " + temp);
 			buffers[buffers.length - 1] = ByteBuffer.allocate(temp);
 			// Read the whole file in one pass
 			fileChannel.read(buffers);
-			// write file content to client
-			write(channel, buffers);
-
-			ByteBuffer bb = ByteBuffer.allocate(CRLF.getBytes().length);
 			// Add the CRLF chars to the buffers
-			bb.put(CRLF.getBytes());
-			write(channel, bb);
-
+			buffers[buffers.length - 1].put(CRLF.getBytes());			
+			// Write the file content to the channel
+			write(channel, buffers);
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
@@ -191,6 +188,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 */
 	protected void write(AsynchronousSocketChannel channel, ByteBuffer[] buffers) throws Exception {
 
+		System.out.println("\t-> Start write");
+
 		for (int i = 0; i < buffers.length; i++) {
 			buffers[i].flip();
 		}
@@ -208,6 +207,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 						exc.printStackTrace();
 					}
 				});
+		System.out.println("\t-> End write");
+
 	}
 
 	/**
@@ -220,9 +221,11 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 * @throws IOException
 	 */
 	protected void write(AsynchronousSocketChannel channel, ByteBuffer byteBuffer) throws Exception {
+		System.out.println("\t\t-> Start write");
 		byteBuffer.flip();
 		Future<Integer> count = channel.write(byteBuffer);
 		int written = count.get();
 		byteBuffer.clear();
+		System.out.println("\t\t-> End write");
 	}
 }
