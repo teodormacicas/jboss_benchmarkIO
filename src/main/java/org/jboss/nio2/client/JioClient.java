@@ -51,9 +51,9 @@ public class JioClient extends Thread {
 	 */
 	public static final int N_THREADS = 100;
 	/**
-	 * 
+	 * Default wait delay 1000ms
 	 */
-	public static final int DEFAULT_DELAY = 1000; // default wait delay 1000ms
+	public static final int DEFAULT_DELAY = 1000;
 	private long max_time = Long.MIN_VALUE;
 	private long min_time = Long.MAX_VALUE;
 	private double avg_time = 0;
@@ -167,7 +167,7 @@ public class JioClient extends Thread {
 		while ((this.max--) > 0) {
 			sleep(this.delay);
 			time = System.currentTimeMillis();
-			write("GET /data/file.txt " + CRLF);
+			write("GET /data/file.txt\n");
 			response = read();
 			time = System.currentTimeMillis() - time;
 			// System.out.println("[Thread-" + getId() +
