@@ -219,6 +219,7 @@ public class JioClient extends Thread {
 
 		while ((nBytes = this.dis.read(bytes)) != -1) {
 			tmp = new String(bytes, 0, nBytes);
+			System.out.println("\t-> tmp = " + tmp);
 			sb.append(tmp);
 			if (tmp.endsWith(CRLF)) {
 				break;
