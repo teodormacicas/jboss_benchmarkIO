@@ -221,8 +221,8 @@ public class JioClient extends Thread {
 			tmp = new String(bytes, 0, nBytes);
 			System.out.println("\t-> tmp = " + tmp);
 			sb.append(tmp);
-			if (tmp.endsWith(CRLF)) {
-				System.out.println("CRLF attemped");
+			if (tmp.endsWith(sessionId)) {
+				System.out.println("End attemped");
 				break;
 			}
 		}
