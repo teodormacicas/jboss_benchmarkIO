@@ -75,8 +75,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			readBuffer.flip();
 			byte bytes[] = new byte[nBytes];
 			readBuffer.get(bytes);
-			readBuffer.clear();
-			System.out.println("[" + this.sessionId + "] " + new String(bytes).trim());
+			System.out.println("[" + sessionId + "] " + new String(bytes).trim());
 			System.out.println(" -> End read");
 
 			try {
@@ -88,6 +87,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			}
 		}
 		// Read again with the this CompletionHandler
+		readBuffer.clear();
 		channel.read(readBuffer, Nio2AsyncServer.TIMEOUT, Nio2AsyncServer.TIME_UNIT, channel, this);
 	}
 

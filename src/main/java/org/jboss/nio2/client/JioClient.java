@@ -21,9 +21,9 @@
  */
 package org.jboss.nio2.client;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -63,7 +63,7 @@ public class JioClient extends Thread {
 	private int delay;
 	private Socket channel;
 	private String sessionId;
-	private OutputStream os;
+	private DataOutputStream dos;
 	private InputStream dis;
 
 	/**
@@ -126,7 +126,7 @@ public class JioClient extends Thread {
 	protected void connect(SocketAddress socketAddress) throws Exception {
 		// Open connection with server
 		this.channel = new Socket(this.hostname, this.port);
-		this.os = this.channel.getOutputStream();
+		this.dos = new DataOutputStream(this.channel.getOutputStream());
 		// this.br = new BufferedReader(new
 		// InputStreamReader(this.channel.getInputStream()));
 		this.dis = this.channel.getInputStream();
@@ -167,7 +167,7 @@ public class JioClient extends Thread {
 		while ((this.max--) > 0) {
 			sleep(this.delay);
 			time = System.currentTimeMillis();
-			write("GET /data/file.txt\n");
+			write("GET /data/file.txt" + CRLF);
 			response = read();
 			time = System.currentTimeMillis() - time;
 			System.out.println("[Thread-" + getId() + "] Received from server -> " + response);
@@ -200,8 +200,8 @@ public class JioClient extends Thread {
 	 */
 	public void write(String data) throws Exception {
 		System.out.println("Start writing request to server");
-		this.os.write(data.getBytes());
-		this.os.flush();
+		this.dos.write(data.getBytes());
+		this.dos.flush();
 		System.out.println("End writing request to server");
 	}
 
