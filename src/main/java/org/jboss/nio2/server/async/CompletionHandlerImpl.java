@@ -71,6 +71,16 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 */
 	@Override
 	public void completed(Integer nBytes, AsynchronousSocketChannel channel) {
+		if (nBytes < 0) {
+			try {
+				logger.info("Connection closed remotely");
+				channel.close();
+			} catch (Exception exp) {
+				logger.error(exp.getMessage(), exp);
+			}
+			return;
+		}
+
 		if (nBytes > 0) {
 			System.out.println(" -> Start read");
 			readBuffer.flip();
@@ -143,44 +153,32 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 				sbc.close();
 			}
 		}
-		
-		
-		
+
 		/*
-		File file = new File("data" + File.separatorChar + "file.txt");
-		Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
-		// SeekableByteChannel sbc = null;
-		RandomAccessFile raf = new RandomAccessFile(file, "r");
-		FileChannel fileChannel = raf.getChannel();
-
-		final int BUFFER_SIZE = 8 * 1024;
-
-		try {
-			// sbc = Files.newByteChannel(path, StandardOpenOption.READ);
-			long fileLength = fileChannel.size();
-			double tmp = 1 + ((double) fileLength / BUFFER_SIZE);
-			int x = (int) tmp;
-			int length = (tmp - x > 0) ? x + 1 : x;
-
-			ByteBuffer buffers[] = new ByteBuffer[length];
-			for (int i = 0; i < buffers.length - 1; i++) {
-				buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
-			}
-			buffers[buffers.length - 1] = ByteBuffer.allocate(CRLF.getBytes().length);
-			// Read the whole file in one pass
-			fileChannel.read(buffers);
-			// Add the CRLF chars to the buffers
-			buffers[buffers.length - 1].put(CRLF.getBytes());
-			// Write the file content to the channel
-			write(channel, buffers);
-		} catch (Exception exp) {
-			logger.error("Exception: " + exp.getMessage(), exp);
-			exp.printStackTrace();
-		} finally {
-			fileChannel.close();
-			raf.close();
-		}
-		*/
+		 * File file = new File("data" + File.separatorChar + "file.txt"); Path
+		 * path = FileSystems.getDefault().getPath(file.getAbsolutePath()); //
+		 * SeekableByteChannel sbc = null; RandomAccessFile raf = new
+		 * RandomAccessFile(file, "r"); FileChannel fileChannel =
+		 * raf.getChannel();
+		 * 
+		 * final int BUFFER_SIZE = 8 * 1024;
+		 * 
+		 * try { // sbc = Files.newByteChannel(path, StandardOpenOption.READ);
+		 * long fileLength = fileChannel.size(); double tmp = 1 + ((double)
+		 * fileLength / BUFFER_SIZE); int x = (int) tmp; int length = (tmp - x >
+		 * 0) ? x + 1 : x;
+		 * 
+		 * ByteBuffer buffers[] = new ByteBuffer[length]; for (int i = 0; i <
+		 * buffers.length - 1; i++) { buffers[i] =
+		 * ByteBuffer.allocate(BUFFER_SIZE); } buffers[buffers.length - 1] =
+		 * ByteBuffer.allocate(CRLF.getBytes().length); // Read the whole file
+		 * in one pass fileChannel.read(buffers); // Add the CRLF chars to the
+		 * buffers buffers[buffers.length - 1].put(CRLF.getBytes()); // Write
+		 * the file content to the channel write(channel, buffers); } catch
+		 * (Exception exp) { logger.error("Exception: " + exp.getMessage(),
+		 * exp); exp.printStackTrace(); } finally { fileChannel.close();
+		 * raf.close(); }
+		 */
 		System.out.println("-> End writeResponse");
 	}
 
