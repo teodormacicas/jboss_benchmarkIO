@@ -163,7 +163,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			long fileLength = fileChannel.size();
 			double tmp = 1 + ((double) fileLength / BUFFER_SIZE);
 			int x = (int) tmp;
-			int length = (tmp - x > 0) ? x + 1 : x;
+			int length = 1 + ((tmp - x > 0) ? x + 1 : x);
 
 			ByteBuffer buffers[] = new ByteBuffer[length];
 			for (int i = 0; i < buffers.length - 1; i++) {
