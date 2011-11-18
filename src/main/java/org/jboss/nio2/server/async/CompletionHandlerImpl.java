@@ -82,12 +82,10 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		}
 
 		if (nBytes > 0) {
-			System.out.println(" -> Start read");
 			readBuffer.flip();
 			byte bytes[] = new byte[nBytes];
 			readBuffer.get(bytes);
 			System.out.println("[" + sessionId + "] " + new String(bytes).trim());
-			System.out.println(" -> End read");
 
 			try {
 				// write response to client
@@ -134,14 +132,16 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		File file = new File("data" + File.separatorChar + "file.txt");
 		Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
 		SeekableByteChannel sbc = null;
-		ByteBuffer writeBuffer = ByteBuffer.allocate(8 * 1024);
+		ByteBuffer writeBuffer = ByteBuffer.allocate(2 * 8 * 1024);
 		try {
 			sbc = Files.newByteChannel(path, StandardOpenOption.READ);
 			// Read from file and write to the asynchronous socket channel
+			int counter = 0;
 			while (sbc.read(writeBuffer) > 0) {
+				counter++;
 				write(channel, writeBuffer);
 			}
-
+			System.out.println("Number of reads: " + counter);
 			// write the CRLF characters
 			writeBuffer.put(CRLF.getBytes());
 			write(channel, writeBuffer);
