@@ -170,8 +170,7 @@ public class JioClient extends Thread {
 			write("GET /data/file.txt\n");
 			response = read();
 			time = System.currentTimeMillis() - time;
-			// System.out.println("[Thread-" + getId() +
-			// "] Received from server -> " + response);
+			System.out.println("[Thread-" + getId() + "] Received from server -> " + response);
 			// update the maximum response time
 			if (time > max_time) {
 				max_time = time;
@@ -210,8 +209,7 @@ public class JioClient extends Thread {
 	 * @throws Exception
 	 */
 	public String read() throws Exception {
-		// return this.br.readLine();
-
+		System.out.println("Start reading server response");
 		byte bytes[] = new byte[1024];
 		int nBytes = -1;
 		String tmp = null;
@@ -224,7 +222,7 @@ public class JioClient extends Thread {
 				break;
 			}
 		}
-
+		System.out.println("End reading server response");
 		return sb.toString();
 	}
 
