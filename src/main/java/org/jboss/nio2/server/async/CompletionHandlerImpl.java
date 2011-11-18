@@ -149,18 +149,16 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		final int BUFFER_SIZE = 8 * 1024;
 
 		try {
-			long fileLength = fileChannel.size() + CRLF.getBytes().length;
-			double tmp = ((double) fileLength / BUFFER_SIZE);
-			int x = (int) tmp;
-			int length = (tmp - x > 0) ? x + 1 : x;
+			long fileLength = fileChannel.size() + CRLF.getBytes().length + 1;
+			double tmp = (double) fileLength / BUFFER_SIZE;
+			int length = (int) Math.ceil(tmp);
 			ByteBuffer buffers[] = new ByteBuffer[length];
 
 			for (int i = 0; i < buffers.length - 1; i++) {
 				buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
 			}
 
-			int temp = (int) (fileLength - x * BUFFER_SIZE);
-			System.out.println("temp = " + temp);
+			int temp = (int) (fileLength % BUFFER_SIZE);
 			buffers[buffers.length - 1] = ByteBuffer.allocate(temp);
 			// Read the whole file in one pass
 			fileChannel.read(buffers);

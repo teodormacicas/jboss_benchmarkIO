@@ -64,7 +64,7 @@ public class JioClient extends Thread {
 	private Socket channel;
 	private String sessionId;
 	private DataOutputStream dos;
-	private InputStream dis;
+	private InputStream is;
 
 	/**
 	 * Create a new instance of {@code JioClient}
@@ -129,7 +129,7 @@ public class JioClient extends Thread {
 		this.dos = new DataOutputStream(this.channel.getOutputStream());
 		// this.br = new BufferedReader(new
 		// InputStreamReader(this.channel.getInputStream()));
-		this.dis = this.channel.getInputStream();
+		this.is = this.channel.getInputStream();
 	}
 
 	/**
@@ -213,10 +213,10 @@ public class JioClient extends Thread {
 		byte bytes[] = new byte[8 * 1024];
 		int nBytes = -1;
 		String tmp = null;
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 
 		int counter = 0;
-		while ((nBytes = this.dis.read(bytes)) != -1) {
+		while ((nBytes = this.is.read(bytes)) != -1) {
 			tmp = new String(bytes, 0, nBytes);
 			System.out.println("counter = " + (++counter));
 			sb.append(tmp);
