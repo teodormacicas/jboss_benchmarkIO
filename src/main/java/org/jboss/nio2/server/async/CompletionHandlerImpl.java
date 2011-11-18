@@ -80,11 +80,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 
 			try {
 				// write response to client
-				// writeResponse(channel);
-				readBuffer.clear();
-				readBuffer.put(("Pong from server" + CRLF).getBytes());
-				readBuffer.flip();
-				channel.write(readBuffer).get();
+				writeResponse(channel);
 			} catch (Exception e) {
 				logger.error(e.getMessage(), e);
 				e.printStackTrace();
@@ -139,27 +135,17 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			int x = (int) tmp;
 			int length = (tmp - x > 0) ? x + 1 : x;
 
-			ByteBuffer buffer = ByteBuffer.allocate((int) fileLength + CRLF.getBytes().length);
-
-			/*
-			 * ByteBuffer buffers[] = new ByteBuffer[length]; for (int i = 0; i
-			 * < buffers.length - 1; i++) { buffers[i] =
-			 * ByteBuffer.allocate(BUFFER_SIZE); } buffers[buffers.length - 1] =
-			 * ByteBuffer.allocate(16); // Read the whole file in one pass
-			 * fileChannel.read(buffers); // Add the CRLF chars to the buffers
-			 * buffers[buffers.length - 1].put(CRLF.getBytes()); // Write the
-			 * file content to the channel write(channel, buffers);
-			 */
-
-			fileChannel.read(buffer);
-
-			System.out.println("Buffer.limit : " + buffer.limit());
-			System.out.println("Buffer.position : " + buffer.position());
-			System.out.println("Buffer.capacity : " + buffer.capacity());
-			System.out.println("Buffer.remaining : " + buffer.remaining());
-
-			buffer.put(CRLF.getBytes());
-			write(channel, buffer);
+			ByteBuffer buffers[] = new ByteBuffer[length];
+			for (int i = 0; i < buffers.length - 1; i++) {
+				buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
+			}
+			buffers[buffers.length - 1] = ByteBuffer.allocate(CRLF.getBytes().length);
+			// Read the whole file in one pass
+			fileChannel.read(buffers);
+			// Add the CRLF chars to the buffers
+			buffers[buffers.length - 1].put(CRLF.getBytes());
+			// Write the file content to the channel
+			write(channel, buffers);
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
