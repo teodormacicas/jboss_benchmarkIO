@@ -80,7 +80,11 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 
 			try {
 				// write response to client
-				writeResponse(channel);
+				// writeResponse(channel);
+				readBuffer.clear();
+				readBuffer.put(("Pong from server" + CRLF).getBytes());
+				readBuffer.flip();
+				channel.write(readBuffer).get();
 			} catch (Exception e) {
 				logger.error(e.getMessage(), e);
 				e.printStackTrace();
