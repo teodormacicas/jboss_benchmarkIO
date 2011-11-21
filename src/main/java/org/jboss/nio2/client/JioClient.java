@@ -170,7 +170,7 @@ public class JioClient extends Thread {
 			write("GET /data/file.txt" + CRLF);
 			response = read();
 			time = System.currentTimeMillis() - time;
-			System.out.println("[Thread-" + getId() + "] Received from server -> " + response);
+			// System.out.println("[Thread-" + getId() + "] Received from server -> " + response);
 			// update the maximum response time
 			if (time > max_time) {
 				max_time = time;

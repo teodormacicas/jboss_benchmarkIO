@@ -192,6 +192,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 
 					@Override
 					public void completed(Long nBytes, Long total) {
+						System.out.println("[" + sessionId + "] Number of bytes written: " + nBytes
+								+ " from total: " + total);
 						logger.infov("Number of bytes written : {0} from {1}", nBytes, total);
 						written += nBytes;
 						if (written < total) {
