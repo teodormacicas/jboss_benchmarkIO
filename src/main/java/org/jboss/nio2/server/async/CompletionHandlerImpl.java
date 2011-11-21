@@ -23,14 +23,11 @@ package org.jboss.nio2.server.async;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
+import java.nio.channels.FileChannel;
 import java.util.concurrent.Future;
 
 import org.jboss.logging.Logger;
@@ -130,47 +127,48 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		final int BUFFER_SIZE = 8 * 1024;
 		File file = new File("data" + File.separatorChar + "file.txt");
 
-		Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
-		SeekableByteChannel sbc = null;
-		ByteBuffer writeBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+		/*
+		 * Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
+		 * SeekableByteChannel sbc = null; ByteBuffer writeBuffer =
+		 * ByteBuffer.allocate(BUFFER_SIZE); try { sbc =
+		 * Files.newByteChannel(path, StandardOpenOption.READ); // Read from
+		 * file and write to the asynchronous socket channel while
+		 * (sbc.read(writeBuffer) > 0) { write(channel, writeBuffer); } // write
+		 * the CRLF characters writeBuffer.put(CRLF.getBytes()); write(channel,
+		 * writeBuffer); } catch (Exception exp) { logger.error("Exception: " +
+		 * exp.getMessage(), exp); exp.printStackTrace(); } finally { if (sbc !=
+		 * null) { sbc.close(); } }
+		 */
+
+		RandomAccessFile raf = new RandomAccessFile(file, "r");
+		FileChannel fileChannel = raf.getChannel();
+
 		try {
-			sbc = Files.newByteChannel(path, StandardOpenOption.READ);
-			// Read from file and write to the asynchronous socket channel
-			while (sbc.read(writeBuffer) > 0) {
-				write(channel, writeBuffer);
-			} // write the CRLF characters
-			writeBuffer.put(CRLF.getBytes());
-			write(channel, writeBuffer);
+			long fileLength = fileChannel.size() + CRLF.getBytes().length;
+			double tmp = (double) fileLength / BUFFER_SIZE;
+			int length = (int) Math.ceil(tmp);
+			ByteBuffer buffers[] = new ByteBuffer[length];
+
+			for (int i = 0; i < buffers.length - 1; i++) {
+				buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
+			}
+
+			int temp = (int) (fileLength % BUFFER_SIZE);
+			buffers[buffers.length - 1] = ByteBuffer.allocate(temp);
+			// Read the whole file in one pass
+			fileChannel.read(buffers);
+
+			buffers[buffers.length - 1].put(CRLF.getBytes());
+			// Write the file content to the channel
+			write(channel, buffers, fileLength);
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
 		} finally {
-			if (sbc != null) {
-				sbc.close();
-			}
+			fileChannel.close();
+			raf.close();
 		}
-		/*
-		 * RandomAccessFile raf = new RandomAccessFile(file, "r"); FileChannel
-		 * fileChannel = raf.getChannel();
-		 * 
-		 * try { long fileLength = fileChannel.size(); double tmp = (double)
-		 * fileLength / BUFFER_SIZE; int length = (int) Math.ceil(tmp);
-		 * ByteBuffer buffers[] = new ByteBuffer[length];
-		 * 
-		 * for (int i = 0; i < buffers.length - 1; i++) { buffers[i] =
-		 * ByteBuffer.allocate(BUFFER_SIZE); }
-		 * 
-		 * int temp = (int) (fileLength % BUFFER_SIZE); buffers[buffers.length -
-		 * 1] = ByteBuffer.allocate(temp); // Read the whole file in one pass
-		 * fileChannel.read(buffers); // Write the file content to the channel
-		 * write(channel, buffers, fileLength);
-		 * 
-		 * ByteBuffer crlf_buffer = ByteBuffer.allocate(CRLF.getBytes().length);
-		 * crlf_buffer.put(CRLF.getBytes()); write(channel, crlf_buffer); }
-		 * catch (Exception exp) { logger.error("Exception: " +
-		 * exp.getMessage(), exp); exp.printStackTrace(); } finally {
-		 * fileChannel.close(); raf.close(); }
-		 */
+
 	}
 
 	/**
@@ -198,8 +196,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 						logger.infov("Total number of bytes written : {0}", total_written);
 						if (total_written < total) {
 							offset += nBytes / buffers[0].capacity();
-							channel.write(buffers, offset, buffers.length - offset, Nio2AsyncServer.TIMEOUT,
-									Nio2AsyncServer.TIME_UNIT, total, this);
+							channel.write(buffers, offset, buffers.length - offset,
+									Nio2AsyncServer.TIMEOUT, Nio2AsyncServer.TIME_UNIT, total, this);
 						}
 					}
 
