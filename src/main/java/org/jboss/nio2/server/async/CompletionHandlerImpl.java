@@ -126,7 +126,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 * @throws Exception
 	 */
 	protected void writeResponse(AsynchronousSocketChannel channel) throws Exception {
-		
+
 		final int BUFFER_SIZE = 8 * 1024;
 		File file = new File("data" + File.separatorChar + "file.txt");
 
@@ -150,37 +150,27 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			}
 		}
 		/*
-		RandomAccessFile raf = new RandomAccessFile(file, "r");
-		FileChannel fileChannel = raf.getChannel();
-
-		try {
-			long fileLength = fileChannel.size();
-			double tmp = (double) fileLength / BUFFER_SIZE;
-			int length = (int) Math.ceil(tmp);
-			ByteBuffer buffers[] = new ByteBuffer[length];
-
-			for (int i = 0; i < buffers.length - 1; i++) {
-				buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
-			}
-
-			int temp = (int) (fileLength % BUFFER_SIZE);
-			buffers[buffers.length - 1] = ByteBuffer.allocate(temp);
-			// Read the whole file in one pass
-			fileChannel.read(buffers);
-			// Write the file content to the channel
-			write(channel, buffers, fileLength);
-
-			ByteBuffer crlf_buffer = ByteBuffer.allocate(CRLF.getBytes().length);
-			crlf_buffer.put(CRLF.getBytes());
-			write(channel, crlf_buffer);
-		} catch (Exception exp) {
-			logger.error("Exception: " + exp.getMessage(), exp);
-			exp.printStackTrace();
-		} finally {
-			fileChannel.close();
-			raf.close();
-		}
-		*/
+		 * RandomAccessFile raf = new RandomAccessFile(file, "r"); FileChannel
+		 * fileChannel = raf.getChannel();
+		 * 
+		 * try { long fileLength = fileChannel.size(); double tmp = (double)
+		 * fileLength / BUFFER_SIZE; int length = (int) Math.ceil(tmp);
+		 * ByteBuffer buffers[] = new ByteBuffer[length];
+		 * 
+		 * for (int i = 0; i < buffers.length - 1; i++) { buffers[i] =
+		 * ByteBuffer.allocate(BUFFER_SIZE); }
+		 * 
+		 * int temp = (int) (fileLength % BUFFER_SIZE); buffers[buffers.length -
+		 * 1] = ByteBuffer.allocate(temp); // Read the whole file in one pass
+		 * fileChannel.read(buffers); // Write the file content to the channel
+		 * write(channel, buffers, fileLength);
+		 * 
+		 * ByteBuffer crlf_buffer = ByteBuffer.allocate(CRLF.getBytes().length);
+		 * crlf_buffer.put(CRLF.getBytes()); write(channel, crlf_buffer); }
+		 * catch (Exception exp) { logger.error("Exception: " +
+		 * exp.getMessage(), exp); exp.printStackTrace(); } finally {
+		 * fileChannel.close(); raf.close(); }
+		 */
 	}
 
 	/**
@@ -199,9 +189,18 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 
 		channel.write(buffers, 0, buffers.length, Nio2AsyncServer.TIMEOUT,
 				Nio2AsyncServer.TIME_UNIT, total, new CompletionHandler<Long, Long>() {
+					private int offset = 0;
+
 					@Override
 					public void completed(Long nBytes, Long total) {
 						logger.infov("Number of bytes written : {0}", nBytes);
+						long total_written = buffers[0].capacity() * offset + nBytes;
+						logger.infov("Total number of bytes written : {0}", total_written);
+						if (total_written < total) {
+							offset += nBytes / buffers[0].capacity();
+							channel.write(buffers, offset, buffers.length - offset, Nio2AsyncServer.TIMEOUT,
+									Nio2AsyncServer.TIME_UNIT, total, this);
+						}
 					}
 
 					@Override
