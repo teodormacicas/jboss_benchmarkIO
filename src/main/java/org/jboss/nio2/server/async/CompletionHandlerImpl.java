@@ -195,7 +195,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 						logger.infov("Number of bytes written : {0} from {1}", nBytes, total);
 						written += nBytes;
 						if (written < total) {
-							offset = (int) ((written + nBytes) / buffers[0].capacity());
+							offset = (int) (written / buffers[0].capacity());
 							channel.write(buffers, offset, buffers.length - offset,
 									Nio2AsyncServer.TIMEOUT, Nio2AsyncServer.TIME_UNIT, total, this);
 						}
