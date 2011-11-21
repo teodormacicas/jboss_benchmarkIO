@@ -149,7 +149,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		final int BUFFER_SIZE = 8 * 1024;
 
 		try {
-			long fileLength = fileChannel.size() + CRLF.getBytes().length;
+			long fileLength = fileChannel.size();
 			double tmp = (double) fileLength / BUFFER_SIZE;
 			int length = (int) Math.ceil(tmp);
 			ByteBuffer buffers[] = new ByteBuffer[length];
@@ -162,10 +162,13 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 			buffers[buffers.length - 1] = ByteBuffer.allocate(temp);
 			// Read the whole file in one pass
 			fileChannel.read(buffers);
-			// Add the CRLF chars to the buffers
-			buffers[buffers.length - 1].put(CRLF.getBytes());			
 			// Write the file content to the channel
-			write(channel, buffers);
+			write(channel, buffers, fileLength);
+
+			ByteBuffer crlf_buffer = ByteBuffer.allocate(CRLF.getBytes().length);
+			crlf_buffer.put(CRLF.getBytes());
+			crlf_buffer.flip();
+			write(channel, crlf_buffer);
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
@@ -184,7 +187,8 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 	 * @param length
 	 * @throws Exception
 	 */
-	protected void write(AsynchronousSocketChannel channel, ByteBuffer[] buffers) throws Exception {
+	protected void write(final AsynchronousSocketChannel channel, final ByteBuffer[] buffers,
+			final long total) throws Exception {
 
 		System.out.println("\t-> Start write");
 
@@ -193,14 +197,14 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 		}
 
 		channel.write(buffers, 0, buffers.length, Nio2AsyncServer.TIMEOUT,
-				Nio2AsyncServer.TIME_UNIT, null, new CompletionHandler<Long, Void>() {
+				Nio2AsyncServer.TIME_UNIT, total, new CompletionHandler<Long, Long>() {
 					@Override
-					public void completed(Long result, Void attachment) {
-						logger.info("The content has been sent to client");
+					public void completed(Long nBytes, Long total) {
+						logger.infov("Number of bytes written : {0}", nBytes);
 					}
 
 					@Override
-					public void failed(Throwable exc, Void attachment) {
+					public void failed(Throwable exc, Long attachment) {
 						logger.error("WRITE OPERATION FAILED : " + exc.getMessage(), exc);
 						exc.printStackTrace();
 					}
