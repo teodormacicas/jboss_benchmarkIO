@@ -191,7 +191,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 
 					@Override
 					public void completed(Long nBytes, Long total) {
-						logger.infov("Number of bytes written : {0}", nBytes);
+						logger.infov("Number of bytes written : {0} from {1}", nBytes, total);
 						if (nBytes < total) {
 							offset += nBytes / buffers[0].capacity();
 							channel.write(buffers, offset, buffers.length - offset,
