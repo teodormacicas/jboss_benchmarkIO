@@ -209,23 +209,19 @@ public class JioClient extends Thread {
 	 * @throws Exception
 	 */
 	public String read() throws Exception {
-		System.out.println("Start reading server response");
 		byte bytes[] = new byte[8 * 1024];
 		int nBytes = -1;
 		String tmp = null;
 		StringBuilder sb = new StringBuilder();
 
-		int counter = 0;
 		while ((nBytes = this.is.read(bytes)) != -1) {
 			tmp = new String(bytes, 0, nBytes);
-			System.out.println("counter = " + (++counter) + ", nBytes = " + nBytes);
 			sb.append(tmp);
 			if (tmp.endsWith(CRLF)) {
 				System.out.println("\n**** CRLF attemped ****");
 				break;
 			}
 		}
-		System.out.println("End reading server response");
 		return sb.toString();
 	}
 
