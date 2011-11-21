@@ -192,9 +192,7 @@ class CompletionHandlerImpl implements CompletionHandler<Integer, AsynchronousSo
 					@Override
 					public void completed(Long nBytes, Long total) {
 						logger.infov("Number of bytes written : {0}", nBytes);
-						long total_written = buffers[0].capacity() * offset + nBytes;
-						logger.infov("Total number of bytes written : {0}", total_written);
-						if (total_written < total) {
+						if (nBytes < total) {
 							offset += nBytes / buffers[0].capacity();
 							channel.write(buffers, offset, buffers.length - offset,
 									Nio2AsyncServer.TIMEOUT, Nio2AsyncServer.TIME_UNIT, total, this);
