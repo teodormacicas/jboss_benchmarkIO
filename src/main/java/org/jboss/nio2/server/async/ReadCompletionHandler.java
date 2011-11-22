@@ -149,8 +149,6 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 			int length = (int) Math.ceil(tmp);
 			ByteBuffer buffers[] = new ByteBuffer[length];
 
-			System.out.println("File size : " + fileLength + ", numbers of buffers : " + length);
-
 			for (int i = 0; i < buffers.length - 1; i++) {
 				buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
 			}
