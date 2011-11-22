@@ -135,7 +135,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	protected void writeResponse(AsynchronousSocketChannel channel) throws Exception {
 
 		File file = new File("data" + File.separatorChar + "file.txt");
-		
+
 		/*
 		 * Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
 		 * SeekableByteChannel sbc = null; ByteBuffer writeBuffer =
@@ -153,7 +153,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 		FileChannel fileChannel = raf.getChannel();
 
 		try {
-			if(this.writeBuffers == null) {
+			if (this.writeBuffers == null) {
 				initWriteBuffers();
 			}
 			// Write the file content to the channel
@@ -220,9 +220,6 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 		// Flip all the write byte buffers
 		flipAll(buffers);
 
-		int socketBufferSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
-		System.out.println("SO_SNDBUF = " + socketBufferSize);
-
 		channel.write(buffers, 0, buffers.length, Nio2AsyncServer.TIMEOUT,
 				Nio2AsyncServer.TIME_UNIT, total, new CompletionHandler<Long, Long>() {
 					private int offset = 0;
@@ -232,14 +229,6 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 					public void completed(Long nBytes, Long total) {
 						System.out.println("[" + sessionId + "] Number of bytes written: " + nBytes
 								+ " from total: " + total);
-
-						try {
-							int socketBufferSize = channel
-									.getOption(StandardSocketOptions.SO_SNDBUF);
-							System.out.println("SO_SNDBUF = " + socketBufferSize);
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
 
 						written += nBytes;
 						if (written < total) {
