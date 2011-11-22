@@ -52,9 +52,9 @@ public class Nio2AsyncServer {
 	 */
 	public static final int SERVER_PORT = 8081;
 	private static final Logger logger = Logger.getLogger(Nio2AsyncServer.class.getName());
-	protected static final long TIMEOUT = 60;
+	protected static final long TIMEOUT = 20;
 	protected static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
-	private static final ExecutorService pool = Executors.newFixedThreadPool(400);
+	private static final ExecutorService pool = Executors.newFixedThreadPool(500);
 
 	/**
 	 * Create a new instance of {@code Nio2AsyncServer}
