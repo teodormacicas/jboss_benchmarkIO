@@ -105,7 +105,7 @@ public class Nio2AsyncServer {
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
 			// Initialize the session
 			initSession(channel, buffer, sessionId);
-			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, new CompletionHandlerImpl(sessionId,
+			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, new ReadCompletionHandler(sessionId,
 					buffer));
 		}
 

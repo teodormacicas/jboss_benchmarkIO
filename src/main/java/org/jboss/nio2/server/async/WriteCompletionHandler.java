@@ -34,15 +34,16 @@ import java.nio.channels.CompletionHandler;
  */
 class WriteCompletionHandler implements CompletionHandler<Integer, AsynchronousSocketChannel> {
 
-	private ByteBuffer writeBuffer;
-
+	private int offset = 0;
+	private long written = 0;
+	private AsynchronousSocketChannel channel;
 	/**
 	 * Create a new instance of {@code WriteCompletionHandler}
 	 */
-	public WriteCompletionHandler() {
-		this.writeBuffer = ByteBuffer.allocate(8 * 1024);
+	public WriteCompletionHandler(AsynchronousSocketChannel channel) {
+		this.channel = channel;
 	}
-
+	
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -66,4 +67,9 @@ class WriteCompletionHandler implements CompletionHandler<Integer, AsynchronousS
 
 	}
 
+	protected void reset () {
+		this.offset = 0;
+		this.written = 0;
+	}
+	
 }
