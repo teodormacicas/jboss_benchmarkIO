@@ -125,9 +125,8 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	protected void writeResponse(AsynchronousSocketChannel channel) throws Exception {
 
 		final int BUFFER_SIZE = 8 * 1024;
-		// File file = new File("data" + File.separatorChar + "file.txt");
-		File file = new File("data" + File.separatorChar + "jboss-as-web-7.0.2.Final.zip");
-
+		File file = new File("data" + File.separatorChar + "file.txt");
+		
 		/*
 		 * Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
 		 * SeekableByteChannel sbc = null; ByteBuffer writeBuffer =
