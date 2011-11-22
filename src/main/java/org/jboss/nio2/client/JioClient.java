@@ -170,7 +170,8 @@ public class JioClient extends Thread {
 			write("GET /data/file.txt" + CRLF);
 			response = read();
 			time = System.currentTimeMillis() - time;
-			// System.out.println("[Thread-" + getId() + "] Received from server -> " + response);
+			// System.out.println("[Thread-" + getId() +
+			// "] Received from server -> " + response);
 			// update the maximum response time
 			if (time > max_time) {
 				max_time = time;
@@ -212,17 +213,15 @@ public class JioClient extends Thread {
 		byte bytes[] = new byte[8 * 1024];
 		int nBytes = -1;
 		String tmp = null;
-		StringBuilder sb = new StringBuilder();
-
+		int length = CRLF.getBytes().length;
 		while ((nBytes = this.is.read(bytes)) != -1) {
-			tmp = new String(bytes, 0, nBytes);
-			sb.append(tmp);
-			if (tmp.endsWith(CRLF)) {
+			tmp = new String(bytes, nBytes - length, length);
+			if (tmp.equals(CRLF)) {
 				System.out.println("\n**** CRLF attemped ****");
 				break;
 			}
 		}
-		return sb.toString();
+		return "Hello world!";
 	}
 
 	/**
