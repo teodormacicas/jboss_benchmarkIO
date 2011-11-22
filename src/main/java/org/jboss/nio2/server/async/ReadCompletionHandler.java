@@ -133,25 +133,6 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	 * @throws Exception
 	 */
 	protected void writeResponse(AsynchronousSocketChannel channel) throws Exception {
-
-		File file = new File("data" + File.separatorChar + "file.txt");
-
-		/*
-		 * Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
-		 * SeekableByteChannel sbc = null; ByteBuffer writeBuffer =
-		 * ByteBuffer.allocate(BUFFER_SIZE); try { sbc =
-		 * Files.newByteChannel(path, StandardOpenOption.READ); // Read from
-		 * file and write to the asynchronous socket channel while
-		 * (sbc.read(writeBuffer) > 0) { write(channel, writeBuffer); } // write
-		 * the CRLF characters writeBuffer.put(CRLF.getBytes()); write(channel,
-		 * writeBuffer); } catch (Exception exp) { logger.error("Exception: " +
-		 * exp.getMessage(), exp); exp.printStackTrace(); } finally { if (sbc !=
-		 * null) { sbc.close(); } }
-		 */
-
-		RandomAccessFile raf = new RandomAccessFile(file, "r");
-		FileChannel fileChannel = raf.getChannel();
-
 		try {
 			if (this.writeBuffers == null) {
 				initWriteBuffers();
@@ -161,11 +142,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
-		} finally {
-			fileChannel.close();
-			raf.close();
 		}
-
 	}
 
 	/**
@@ -185,6 +162,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	 * @throws IOException
 	 */
 	private void initWriteBuffers() throws IOException {
+
 		File file = new File("data" + File.separatorChar + "file.txt");
 		RandomAccessFile raf = new RandomAccessFile(file, "r");
 		FileChannel fileChannel = raf.getChannel();
@@ -202,6 +180,8 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 		writeBuffers[writeBuffers.length - 1] = ByteBuffer.allocate(temp);
 		// Read the whole file in one pass
 		fileChannel.read(writeBuffers);
+		// Close the file channel
+		raf.close();
 		// Put the <i>CRLF</i> chars at the end of the last byte buffer to mark
 		// the end of data
 		writeBuffers[writeBuffers.length - 1].put(CRLF.getBytes());
