@@ -21,9 +21,13 @@
  */
 package org.jboss.nio2.server.async;
 
+import java.io.IOException;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
+
+import org.jboss.logging.Logger;
 
 /**
  * {@code WriteCompletionHandler}
@@ -32,18 +36,26 @@ import java.nio.channels.CompletionHandler;
  * 
  * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
  */
-class WriteCompletionHandler implements CompletionHandler<Integer, AsynchronousSocketChannel> {
+class WriteCompletionHandler implements CompletionHandler<Long, Long> {
 
+	private static final Logger logger = Logger.getLogger(CompletionHandler.class.getName());
+	
 	private int offset = 0;
 	private long written = 0;
 	private AsynchronousSocketChannel channel;
+	private String sessionId;
+	private ByteBuffer buffers[];
+
 	/**
 	 * Create a new instance of {@code WriteCompletionHandler}
+	 * @param channel 
+	 * @param sessionId 
 	 */
-	public WriteCompletionHandler(AsynchronousSocketChannel channel) {
+	public WriteCompletionHandler(AsynchronousSocketChannel channel, String sessionId) {
 		this.channel = channel;
+		this.sessionId = sessionId;
 	}
-	
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -51,8 +63,23 @@ class WriteCompletionHandler implements CompletionHandler<Integer, AsynchronousS
 	 * java.lang.Object)
 	 */
 	@Override
-	public void completed(Integer nBytes, AsynchronousSocketChannel channel) {
+	public void completed(Long nBytes, Long total) {
+		System.out.println("[" + sessionId + "] Number of bytes written: " + nBytes
+				+ " from total: " + total);
 
+		try {
+			int socketBufferSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
+			System.out.println("SO_SNDBUF = " + socketBufferSize);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		written += nBytes;
+		if (written < total) {
+			offset = (int) (written / buffers[0].capacity());
+			channel.write(buffers, offset, buffers.length - offset,
+					Nio2AsyncServer.TIMEOUT, Nio2AsyncServer.TIME_UNIT, total, this);
+		}
 	}
 
 	/*
@@ -62,14 +89,27 @@ class WriteCompletionHandler implements CompletionHandler<Integer, AsynchronousS
 	 * java.lang.Object)
 	 */
 	@Override
-	public void failed(Throwable exc, AsynchronousSocketChannel channel) {
-		// TODO Auto-generated method stub
-
+	public void failed(Throwable exc, Long total) {
+		logger.error("WRITE OPERATION FAILED : " + exc.getMessage(), exc);
+		exc.printStackTrace();
 	}
 
-	protected void reset () {
+	/**
+	 * 
+	 */
+	protected void reset() {
 		this.offset = 0;
 		this.written = 0;
+		this.buffers = null;
 	}
-	
+
+	/**
+	 * Setter for the buffers
+	 *
+	 * @param buffers the buffers to set
+	 */
+	public void setBuffers(ByteBuffer[] buffers) {
+		this.buffers = buffers;
+	}
+
 }

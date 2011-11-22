@@ -24,8 +24,6 @@ package org.jboss.nio2.server.async;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.net.SocketOption;
-import java.net.SocketOptions;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -36,7 +34,7 @@ import java.util.concurrent.Future;
 import org.jboss.logging.Logger;
 
 /**
- * {@code CompletionHandlerImpl}
+ * {@code ReadCompletionHandler}
  * 
  * Created on Nov 16, 2011 at 8:59:51 PM
  * 
@@ -51,9 +49,10 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	private static final Logger logger = Logger.getLogger(CompletionHandler.class.getName());
 	private String sessionId;
 	private ByteBuffer readBuffer;
+	protected static final int BUFFER_SIZE = 2 * 8 * 1024;
 
 	/**
-	 * Create a new instance of {@code CompletionHandlerImpl}
+	 * Create a new instance of {@code ReadCompletionHandler}
 	 * 
 	 * @param sessionId
 	 * @param byteBuffer
@@ -127,7 +126,6 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	 */
 	protected void writeResponse(AsynchronousSocketChannel channel) throws Exception {
 
-		final int BUFFER_SIZE = 8 * 1024;
 		File file = new File("data" + File.separatorChar + "file.txt");
 
 		/*
@@ -190,6 +188,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 
 		int socketBufferSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
 		System.out.println("SO_SNDBUF = " + socketBufferSize);
+
 		channel.write(buffers, 0, buffers.length, Nio2AsyncServer.TIMEOUT,
 				Nio2AsyncServer.TIME_UNIT, total, new CompletionHandler<Long, Long>() {
 					private int offset = 0;
@@ -201,7 +200,8 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 								+ " from total: " + total);
 
 						try {
-							int socketBufferSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
+							int socketBufferSize = channel
+									.getOption(StandardSocketOptions.SO_SNDBUF);
 							System.out.println("SO_SNDBUF = " + socketBufferSize);
 						} catch (IOException e) {
 							e.printStackTrace();
