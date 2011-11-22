@@ -125,7 +125,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	protected void writeResponse(AsynchronousSocketChannel channel) throws Exception {
 
 		final int BUFFER_SIZE = 8 * 1024;
-		//File file = new File("data" + File.separatorChar + "file.txt");
+		// File file = new File("data" + File.separatorChar + "file.txt");
 		File file = new File("data" + File.separatorChar + "jboss-as-web-7.0.2.Final.zip");
 
 		/*
@@ -149,6 +149,8 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 			double tmp = (double) fileLength / BUFFER_SIZE;
 			int length = (int) Math.ceil(tmp);
 			ByteBuffer buffers[] = new ByteBuffer[length];
+
+			System.out.println("File size : " + fileLength + ", numbers of buffers : " + length);
 
 			for (int i = 0; i < buffers.length - 1; i++) {
 				buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
@@ -217,12 +219,13 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	 * @param buffers
 	 * @throws Exception
 	 */
-	protected void write(final AsynchronousSocketChannel channel, final ByteBuffer[] buffers) throws Exception {
-		for(ByteBuffer buffer : buffers) {
+	protected void write(final AsynchronousSocketChannel channel, final ByteBuffer[] buffers)
+			throws Exception {
+		for (ByteBuffer buffer : buffers) {
 			write(channel, buffer);
 		}
 	}
-	
+
 	/**
 	 * Write the byte buffer to the specified channel
 	 * 
