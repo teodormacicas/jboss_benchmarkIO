@@ -24,6 +24,9 @@ package org.jboss.nio2.server.async;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.SocketOption;
+import java.net.SocketOptions;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
@@ -126,7 +129,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 
 		final int BUFFER_SIZE = 8 * 1024;
 		File file = new File("data" + File.separatorChar + "file.txt");
-		
+
 		/*
 		 * Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
 		 * SeekableByteChannel sbc = null; ByteBuffer writeBuffer =
@@ -185,6 +188,8 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 			buffers[i].flip();
 		}
 
+		int socketBufferSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
+		System.out.println("SO_SNDBUF = " + socketBufferSize);
 		channel.write(buffers, 0, buffers.length, Nio2AsyncServer.TIMEOUT,
 				Nio2AsyncServer.TIME_UNIT, total, new CompletionHandler<Long, Long>() {
 					private int offset = 0;
@@ -194,6 +199,14 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 					public void completed(Long nBytes, Long total) {
 						System.out.println("[" + sessionId + "] Number of bytes written: " + nBytes
 								+ " from total: " + total);
+
+						try {
+							int socketBufferSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
+							System.out.println("SO_SNDBUF = " + socketBufferSize);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+
 						written += nBytes;
 						if (written < total) {
 							offset = (int) (written / buffers[0].capacity());
