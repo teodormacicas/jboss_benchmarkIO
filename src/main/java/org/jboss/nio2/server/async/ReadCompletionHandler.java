@@ -22,6 +22,7 @@
 package org.jboss.nio2.server.async;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.StandardSocketOptions;
@@ -46,10 +47,17 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	 * 
 	 */
 	public static final String CRLF = "\r\n";
+	/**
+	 * The size of each single write buffer
+	 */
+	public static final int WRITE_BUFFER_SIZE = 16 * 1024;
 	private static final Logger logger = Logger.getLogger(CompletionHandler.class.getName());
 	private String sessionId;
+	// The read buffer
 	private ByteBuffer readBuffer;
-	protected static final int BUFFER_SIZE = 2 * 8 * 1024;
+	// An array of byte buffers for write operations
+	private ByteBuffer writeBuffers[];
+	private long fileLength;
 
 	/**
 	 * Create a new instance of {@code ReadCompletionHandler}
@@ -127,7 +135,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	protected void writeResponse(AsynchronousSocketChannel channel) throws Exception {
 
 		File file = new File("data" + File.separatorChar + "file.txt");
-
+		
 		/*
 		 * Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
 		 * SeekableByteChannel sbc = null; ByteBuffer writeBuffer =
@@ -145,23 +153,11 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 		FileChannel fileChannel = raf.getChannel();
 
 		try {
-			long fileLength = fileChannel.size() + CRLF.getBytes().length;
-			double tmp = (double) fileLength / BUFFER_SIZE;
-			int length = (int) Math.ceil(tmp);
-			ByteBuffer buffers[] = new ByteBuffer[length];
-
-			for (int i = 0; i < buffers.length - 1; i++) {
-				buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
+			if(this.writeBuffers == null) {
+				initWriteBuffers();
 			}
-
-			int temp = (int) (fileLength % BUFFER_SIZE);
-			buffers[buffers.length - 1] = ByteBuffer.allocate(temp);
-			// Read the whole file in one pass
-			fileChannel.read(buffers);
-
-			buffers[buffers.length - 1].put(CRLF.getBytes());
 			// Write the file content to the channel
-			write(channel, buffers, fileLength);
+			write(channel, this.writeBuffers, fileLength);
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
@@ -170,6 +166,45 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 			raf.close();
 		}
 
+	}
+
+	/**
+	 * Flip all the write byte buffers
+	 * 
+	 * @param buffers
+	 */
+	protected static void flipAll(ByteBuffer[] buffers) {
+		for (ByteBuffer bb : buffers) {
+			bb.flip();
+		}
+	}
+
+	/**
+	 * Read the file from HD and initialize the write byte buffers array.
+	 * 
+	 * @throws IOException
+	 */
+	private void initWriteBuffers() throws IOException {
+		File file = new File("data" + File.separatorChar + "file.txt");
+		RandomAccessFile raf = new RandomAccessFile(file, "r");
+		FileChannel fileChannel = raf.getChannel();
+
+		fileLength = fileChannel.size() + CRLF.getBytes().length;
+		double tmp = (double) fileLength / WRITE_BUFFER_SIZE;
+		int length = (int) Math.ceil(tmp);
+		writeBuffers = new ByteBuffer[length];
+
+		for (int i = 0; i < writeBuffers.length - 1; i++) {
+			writeBuffers[i] = ByteBuffer.allocate(WRITE_BUFFER_SIZE);
+		}
+
+		int temp = (int) (fileLength % WRITE_BUFFER_SIZE);
+		writeBuffers[writeBuffers.length - 1] = ByteBuffer.allocate(temp);
+		// Read the whole file in one pass
+		fileChannel.read(writeBuffers);
+		// Put the <i>CRLF</i> chars at the end of the last byte buffer to mark
+		// the end of data
+		writeBuffers[writeBuffers.length - 1].put(CRLF.getBytes());
 	}
 
 	/**
@@ -182,9 +217,8 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	protected void write(final AsynchronousSocketChannel channel, final ByteBuffer[] buffers,
 			final long total) throws Exception {
 
-		for (int i = 0; i < buffers.length; i++) {
-			buffers[i].flip();
-		}
+		// Flip all the write byte buffers
+		flipAll(buffers);
 
 		int socketBufferSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
 		System.out.println("SO_SNDBUF = " + socketBufferSize);
