@@ -196,7 +196,6 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 
 		int bufferSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
 		System.out.println("BUFFER SIZE: " + bufferSize);
-		channel.setOption(StandardSocketOptions.SO_SNDBUF, 64*1024);
 		channel.write(buffers, 0, buffers.length, Nio2AsyncServer.TIMEOUT,
 				Nio2AsyncServer.TIME_UNIT, total, new CompletionHandler<Long, Long>() {
 					private int offset = 0;

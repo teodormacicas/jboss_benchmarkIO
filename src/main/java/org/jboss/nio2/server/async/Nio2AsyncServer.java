@@ -22,6 +22,7 @@
 package org.jboss.nio2.server.async;
 
 import java.net.InetSocketAddress;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
@@ -105,6 +106,9 @@ public class Nio2AsyncServer {
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
 			// Initialize the session
 			initSession(channel, buffer, sessionId);
+			
+			channel.setOption(StandardSocketOptions.SO_SNDBUF, 8*1024);
+			
 			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, new ReadCompletionHandler(sessionId,
 					buffer));
 		}
