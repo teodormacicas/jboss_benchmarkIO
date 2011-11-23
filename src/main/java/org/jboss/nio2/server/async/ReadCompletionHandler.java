@@ -156,8 +156,8 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	private void initWriteBuffers() throws IOException {
 
 		//File file = new File("data" + File.separatorChar + "file32k.txt");
-		File file = new File("data" + File.separatorChar + "file64k.txt");
-		//File file = new File("data" + File.separatorChar + "file128k.txt");
+		// File file = new File("data" + File.separatorChar + "file64k.txt");
+		File file = new File("data" + File.separatorChar + "file128k.txt");
 		RandomAccessFile raf = new RandomAccessFile(file, "r");
 		FileChannel fileChannel = raf.getChannel();
 
