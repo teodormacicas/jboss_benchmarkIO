@@ -34,6 +34,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.logging.Logger;
+import org.jboss.nio2.common.Nio2Utils;
 
 /**
  * {@code NioAsyncServer}
@@ -106,9 +107,8 @@ public class Nio2AsyncServer {
 			final ByteBuffer buffer = ByteBuffer.allocate(512);
 			// Initialize the session
 			initSession(channel, buffer, sessionId);
-			
-			channel.setOption(StandardSocketOptions.SO_SNDBUF, 8*1024);
-			
+			// Fix the channel send buffer size
+			channel.setOption(StandardSocketOptions.SO_SNDBUF, Nio2Utils.SO_SNDBUF);
 			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, new ReadCompletionHandler(sessionId,
 					buffer));
 		}

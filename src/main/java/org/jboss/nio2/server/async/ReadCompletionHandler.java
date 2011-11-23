@@ -155,9 +155,9 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	 */
 	private void initWriteBuffers() throws IOException {
 
-		//File file = new File("data" + File.separatorChar + "file32k.txt");
+		File file = new File("data" + File.separatorChar + "file32k.txt");
 		// File file = new File("data" + File.separatorChar + "file64k.txt");
-		File file = new File("data" + File.separatorChar + "file128k.txt");
+		// File file = new File("data" + File.separatorChar + "file128k.txt");
 		RandomAccessFile raf = new RandomAccessFile(file, "r");
 		FileChannel fileChannel = raf.getChannel();
 
@@ -205,12 +205,6 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 					public void completed(Long nBytes, Long total) {
 						System.out.println("[" + sessionId + "] Number of bytes written: " + nBytes
 								+ " from total: " + total);
-						try {
-							int bufferSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
-							System.out.println("BUFFER SIZE: " + bufferSize);
-						} catch (Exception exp) {
-
-						}
 						written += nBytes;
 						if (written < total) {
 							offset = (int) (written / buffers[0].capacity());

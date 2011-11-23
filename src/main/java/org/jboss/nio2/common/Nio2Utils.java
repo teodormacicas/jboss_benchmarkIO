@@ -44,6 +44,10 @@ public final class Nio2Utils {
 	 * The default server port
 	 */
 	public static final int SERVER_PORT = 8080;
+	/**
+	 * 
+	 */
+	public static final int SO_SNDBUF = 8 * 1024;
 
 	/**
 	 * Create a new instance of {@code Nio2Utils}
