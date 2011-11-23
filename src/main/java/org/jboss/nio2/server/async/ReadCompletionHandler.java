@@ -22,7 +22,6 @@
 package org.jboss.nio2.server.async;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.StandardSocketOptions;
@@ -33,6 +32,7 @@ import java.nio.channels.FileChannel;
 import java.util.concurrent.Future;
 
 import org.jboss.logging.Logger;
+import org.jboss.nio2.common.Nio2Utils;
 
 /**
  * {@code ReadCompletionHandler}
@@ -43,14 +43,6 @@ import org.jboss.logging.Logger;
  */
 class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSocketChannel> {
 
-	/**
-	 * 
-	 */
-	public static final String CRLF = "\r\n";
-	/**
-	 * The size of each single write buffer
-	 */
-	public static final int WRITE_BUFFER_SIZE = 16 * 1024;
 	private static final Logger logger = Logger.getLogger(CompletionHandler.class.getName());
 	private String sessionId;
 	// The read buffer
@@ -167,16 +159,16 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 		RandomAccessFile raf = new RandomAccessFile(file, "r");
 		FileChannel fileChannel = raf.getChannel();
 
-		fileLength = fileChannel.size() + CRLF.getBytes().length;
-		double tmp = (double) fileLength / WRITE_BUFFER_SIZE;
+		fileLength = fileChannel.size() + Nio2Utils.CRLF.getBytes().length;
+		double tmp = (double) fileLength / Nio2Utils.WRITE_BUFFER_SIZE;
 		int length = (int) Math.ceil(tmp);
 		writeBuffers = new ByteBuffer[length];
 
 		for (int i = 0; i < writeBuffers.length - 1; i++) {
-			writeBuffers[i] = ByteBuffer.allocate(WRITE_BUFFER_SIZE);
+			writeBuffers[i] = ByteBuffer.allocate(Nio2Utils.WRITE_BUFFER_SIZE);
 		}
 
-		int temp = (int) (fileLength % WRITE_BUFFER_SIZE);
+		int temp = (int) (fileLength % Nio2Utils.WRITE_BUFFER_SIZE);
 		writeBuffers[writeBuffers.length - 1] = ByteBuffer.allocate(temp);
 		// Read the whole file in one pass
 		fileChannel.read(writeBuffers);
@@ -184,7 +176,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 		raf.close();
 		// Put the <i>CRLF</i> chars at the end of the last byte buffer to mark
 		// the end of data
-		writeBuffers[writeBuffers.length - 1].put(CRLF.getBytes());
+		writeBuffers[writeBuffers.length - 1].put(Nio2Utils.CRLF.getBytes());
 	}
 
 	/**
@@ -200,6 +192,8 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 		// Flip all the write byte buffers
 		flipAll(buffers);
 
+		int bufferSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
+		System.out.println("BUFFER SIZE: " + bufferSize);
 		channel.write(buffers, 0, buffers.length, Nio2AsyncServer.TIMEOUT,
 				Nio2AsyncServer.TIME_UNIT, total, new CompletionHandler<Long, Long>() {
 					private int offset = 0;
@@ -209,7 +203,12 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 					public void completed(Long nBytes, Long total) {
 						System.out.println("[" + sessionId + "] Number of bytes written: " + nBytes
 								+ " from total: " + total);
+						try {
+							int bufferSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
+							System.out.println("BUFFER SIZE: " + bufferSize);
+						} catch (Exception exp) {
 
+						}
 						written += nBytes;
 						if (written < total) {
 							offset = (int) (written / buffers[0].capacity());

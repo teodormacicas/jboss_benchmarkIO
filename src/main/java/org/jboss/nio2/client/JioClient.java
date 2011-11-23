@@ -38,6 +38,7 @@ import java.util.Random;
  */
 public class JioClient extends Thread {
 
+	public static final int READ_BUFFER_SIZE = 16 * 1024;
 	/**
 	 * 
 	 */
@@ -210,7 +211,7 @@ public class JioClient extends Thread {
 	 * @throws Exception
 	 */
 	public String read() throws Exception {
-		byte bytes[] = new byte[8 * 1024];
+		byte bytes[] = new byte[READ_BUFFER_SIZE];
 		int nBytes = -1;
 		String tmp = null;
 		int length = CRLF.getBytes().length;
