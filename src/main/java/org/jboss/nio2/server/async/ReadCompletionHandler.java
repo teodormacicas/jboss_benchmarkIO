@@ -167,11 +167,11 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 		writeBuffers = new ByteBuffer[length];
 
 		for (int i = 0; i < writeBuffers.length - 1; i++) {
-			writeBuffers[i] = ByteBuffer.allocate(Nio2Utils.WRITE_BUFFER_SIZE);
+			writeBuffers[i] = ByteBuffer.allocateDirect(Nio2Utils.WRITE_BUFFER_SIZE);
 		}
 
 		int temp = (int) (fileLength % Nio2Utils.WRITE_BUFFER_SIZE);
-		writeBuffers[writeBuffers.length - 1] = ByteBuffer.allocate(temp);
+		writeBuffers[writeBuffers.length - 1] = ByteBuffer.allocateDirect(temp);
 		// Read the whole file in one pass
 		fileChannel.read(writeBuffers);
 		// Close the file channel
