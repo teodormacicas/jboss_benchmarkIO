@@ -38,6 +38,9 @@ import java.util.Random;
  */
 public class JioClient extends Thread {
 
+	/**
+	 * 
+	 */
 	public static final int READ_BUFFER_SIZE = 16 * 1024;
 	/**
 	 * 
@@ -173,17 +176,18 @@ public class JioClient extends Thread {
 			time = System.currentTimeMillis() - time;
 			// System.out.println("[Thread-" + getId() +
 			// "] Received from server -> " + response);
-			// update the maximum response time
-			if (time > max_time) {
-				max_time = time;
-			}
-			// update the minimum response time
-			if (time < min_time) {
-				min_time = time;
-			}
-			// update the average response time
+			
 			if (counter >= min_count && counter <= max_count) {
+				// update the average response time
 				avg_time += time;
+				// update the maximum response time
+				if (time > max_time) {
+					max_time = time;
+				}
+				// update the minimum response time
+				if (time < min_time) {
+					min_time = time;
+				}
 			}
 			counter++;
 		}

@@ -84,9 +84,9 @@ public class LogParser {
 		br.close();
 		avg_avg /= counter;
 		FileWriter fw = new FileWriter(filename, true);
-		fw.write("------------ STATS ------------\n");
+		fw.write("-------------- STATS --------------\n");
 		fw.write("ABS MAX: " + abs_max + " ms\n");
-		fw.write("ABS MAX: " + abs_min + " ms\n");
+		fw.write("ABS MIN: " + abs_min + " ms\n");
 		fw.write("AVG MAX: " + avg_max + " ms\n");
 		fw.write("AVG MIN: " + avg_min + " ms\n");
 		fw.write("AVG AVG: " + avg_avg + " ms\n");

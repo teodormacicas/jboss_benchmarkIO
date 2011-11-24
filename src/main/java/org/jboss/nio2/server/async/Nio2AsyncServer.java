@@ -108,7 +108,7 @@ public class Nio2AsyncServer {
 			// Initialize the session
 			initSession(channel, buffer, sessionId);
 			// Fix the channel send buffer size
-			//channel.setOption(StandardSocketOptions.SO_SNDBUF, Nio2Utils.SO_SNDBUF);
+			channel.setOption(StandardSocketOptions.SO_SNDBUF, Nio2Utils.SO_SNDBUF);
 			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, new ReadCompletionHandler(sessionId,
 					buffer));
 		}
