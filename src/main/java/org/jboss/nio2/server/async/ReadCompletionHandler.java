@@ -193,9 +193,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 
 		// Flip all the write byte buffers
 		flipAll(buffers);
-
-		int bufferSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
-		System.out.println("BUFFER SIZE: " + bufferSize);
+		// Write response to client
 		channel.write(buffers, 0, buffers.length, Nio2AsyncServer.TIMEOUT,
 				Nio2AsyncServer.TIME_UNIT, total, new CompletionHandler<Long, Long>() {
 					private int offset = 0;

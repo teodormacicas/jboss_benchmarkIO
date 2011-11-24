@@ -52,26 +52,41 @@ public class LogParser {
 		String line = null;
 		// drop the header line
 		line = br.readLine();
-		double avg_min = Double.MAX_VALUE, avg_max = Double.MIN_VALUE, avg_avg = 0, tmp;
+		int abs_min = Integer.MAX_VALUE, abs_max = Integer.MIN_VALUE, tmp0, tmp1;
+		double avg_min = Double.MAX_VALUE, avg_max = Double.MIN_VALUE, avg_avg = 0, tmp2;
 		String tab[];
 		int counter = 0;
 		while ((line = br.readLine()) != null) {
 			counter++;
 			tab = line.split("\\s+");
-			tmp = Double.parseDouble(tab[2]);
-			avg_avg += tmp;
-			if (tmp > avg_max) {
-				avg_max = tmp;
+			tmp0 = Integer.parseInt(tab[0]);
+			tmp1 = Integer.parseInt(tab[1]);
+			tmp2 = Double.parseDouble(tab[2]);
+			// Update the absolute maximum
+			if (abs_max < tmp0) {
+				abs_max = tmp0;
 			}
-			if (tmp < avg_min) {
-				avg_min = tmp;
+			// Update the absolute minimum
+			if (abs_min > tmp1) {
+				abs_min = tmp1;
+			}
+			// Update the average sum
+			avg_avg += tmp2;
+			// Update the maximum average
+			if (tmp2 > avg_max) {
+				avg_max = tmp2;
+			}
+			// Update the minimum average
+			if (tmp2 < avg_min) {
+				avg_min = tmp2;
 			}
 		}
 		br.close();
 		avg_avg /= counter;
 		FileWriter fw = new FileWriter(filename, true);
-		fw.write("---------- STATS ----------\n");
-
+		fw.write("------------ STATS ------------\n");
+		fw.write("ABS MAX: " + abs_max + " ms\n");
+		fw.write("ABS MAX: " + abs_min + " ms\n");
 		fw.write("AVG MAX: " + avg_max + " ms\n");
 		fw.write("AVG MIN: " + avg_min + " ms\n");
 		fw.write("AVG AVG: " + avg_avg + " ms\n");
