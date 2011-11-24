@@ -161,7 +161,7 @@ public class JioClient extends Thread {
 	public void runit() throws Exception {
 		Random random = new Random();
 		// Wait a delay to ensure that all threads are ready
-		sleep(DEFAULT_DELAY + random.nextInt(300));
+		sleep(DEFAULT_DELAY + random.nextInt(500));
 		long time = 0;
 		String response = null;
 		int counter = 0;

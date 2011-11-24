@@ -25,6 +25,10 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * {@code LogParser}
@@ -56,12 +60,25 @@ public class LogParser {
 		double avg_min = Double.MAX_VALUE, avg_max = Double.MIN_VALUE, avg_avg = 0, tmp2;
 		String tab[];
 		int counter = 0;
+
+		LinkedList<Integer> max_times = new LinkedList<Integer>();
+		LinkedList<Integer> min_times = new LinkedList<Integer>();
+		LinkedList<Double> avg_times = new LinkedList<Double>();
+
 		while ((line = br.readLine()) != null) {
 			counter++;
 			tab = line.split("\\s+");
+			// Max
 			tmp0 = Integer.parseInt(tab[0]);
+			max_times.add(tmp0);
+			// Min
 			tmp1 = Integer.parseInt(tab[1]);
+			min_times.add(tmp1);
+
+			// Avg
 			tmp2 = Double.parseDouble(tab[2]);
+			avg_times.add(tmp2);
+
 			// Update the absolute maximum
 			if (abs_max < tmp0) {
 				abs_max = tmp0;
@@ -82,6 +99,25 @@ public class LogParser {
 			}
 		}
 		br.close();
+
+		// sort lists
+		Collections.sort(max_times);
+		Collections.sort(min_times);
+		Collections.sort(avg_times);
+
+		int toRemove = 12 * counter / 100;
+
+		for (int i = 0; i < toRemove; i++) {
+			max_times.removeFirst();
+			max_times.removeLast();
+
+			min_times.removeFirst();
+			min_times.removeLast();
+
+			avg_times.removeFirst();
+			avg_times.removeLast();
+		}
+
 		avg_avg /= counter;
 		FileWriter fw = new FileWriter(filename, true);
 		fw.write("-------------- STATS --------------\n");
