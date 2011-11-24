@@ -130,6 +130,7 @@ public class JioClient extends Thread {
 	protected void connect(SocketAddress socketAddress) throws Exception {
 		// Open connection with server
 		this.channel = new Socket(this.hostname, this.port);
+		System.out.println("Client IP: " + channel.getLocalAddress().getHostAddress());
 		this.dos = new DataOutputStream(this.channel.getOutputStream());
 		// this.br = new BufferedReader(new
 		// InputStreamReader(this.channel.getInputStream()));
@@ -176,7 +177,7 @@ public class JioClient extends Thread {
 			time = System.currentTimeMillis() - time;
 			// System.out.println("[Thread-" + getId() +
 			// "] Received from server -> " + response);
-			
+
 			if (counter >= min_count && counter <= max_count) {
 				// update the average response time
 				avg_time += time;
