@@ -28,16 +28,18 @@ ServerSocketChannel and the last one uses uses an AsynchronousServerSocketChanne
 
 
 1) To run servers, use the following command line
-  * mvn exec:java -Dexec.mainClass="org.jboss.nio2.server.sync.Nio2Server"
-  * mvn exec:java -Dexec.mainClass="org.jboss.nio2.server.selector.Nio2SelectorServer"
-  * mvn exec:java -Dexec.mainClass="org.jboss.nio2.server.async.Nio2AsyncServer"
+  * mvn exec:java -Dexec.mainClass="org.jboss.nio2.server.sync.Nio2Server" -Dexec.args="port"
+  * mvn exec:java -Dexec.mainClass="org.jboss.nio2.server.selector.Nio2SelectorServer" -Dexec.args="port"
+  * mvn exec:java -Dexec.mainClass="org.jboss.nio2.server.async.Nio2AsyncServer" -Dexec.args="port"
  
  
  2) To run clients, use the following command line
   * sh run_sync.sh host port n delay
   * sh run_async.sh host port n delay
   * sh run_selector.sh host n delay
-  
+  For a generic client, which uses simple java.io, that can be applied to all servers may be lunched
+  as follow:
+    sh run.sh host port n delay
   
   host: the server hostname/IP
   port: the server port

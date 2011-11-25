@@ -101,12 +101,15 @@ public class LogParser {
 		br.close();
 
 		// sort lists
+		System.out.println("Sorting collections");
 		Collections.sort(max_times);
 		Collections.sort(min_times);
 		Collections.sort(avg_times);
 
-		int toRemove = 12 * counter / 100;
+		double avg = 0;
 
+		int toRemove = 12 * counter / 100;
+		System.out.println("Filter collections");
 		for (int i = 0; i < toRemove; i++) {
 			max_times.removeFirst();
 			max_times.removeLast();
@@ -119,13 +122,25 @@ public class LogParser {
 		}
 
 		avg_avg /= counter;
-		FileWriter fw = new FileWriter(filename, true);
+		FileWriter fw = new FileWriter(filename + "_merge.txt");
+		int size = min_times.size();
+		fw.write("max \t min \t avg\n");
+		for (int i = 0; i < size; i++) {
+			int x_max = max_times.get(i);
+			int x_min = min_times.get(i);
+			double x_avg = avg_times.get(i);
+			avg += x_avg;
+			fw.write(x_max + " \t " + x_min + " \t " + x_avg + "\n");
+		}
+
+		avg /= size;
+
 		fw.write("-------------- STATS --------------\n");
-		fw.write("ABS MAX: " + abs_max + " ms\n");
-		fw.write("ABS MIN: " + abs_min + " ms\n");
-		fw.write("AVG MAX: " + avg_max + " ms\n");
-		fw.write("AVG MIN: " + avg_min + " ms\n");
-		fw.write("AVG AVG: " + avg_avg + " ms\n");
+		fw.write("ABS MAX: " + max_times.getLast() + " ms\n");
+		fw.write("ABS MIN: " + min_times.getFirst() + " ms\n");
+		fw.write("AVG MAX: " + avg_times.getLast() + " ms\n");
+		fw.write("AVG MIN: " + avg_times.getFirst() + " ms\n");
+		fw.write("AVG AVG: " + avg + " ms\n");
 		fw.flush();
 		fw.close();
 	}
