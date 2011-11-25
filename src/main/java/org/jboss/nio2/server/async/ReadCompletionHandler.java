@@ -84,7 +84,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 			readBuffer.flip();
 			byte bytes[] = new byte[nBytes];
 			readBuffer.get(bytes);
-			System.out.println("[" + sessionId + "] " + new String(bytes).trim());
+			//System.out.println("[" + sessionId + "] " + new String(bytes).trim());
 
 			try {
 				// write response to client
@@ -201,8 +201,8 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 
 					@Override
 					public void completed(Long nBytes, Long total) {
-						System.out.println("[" + sessionId + "] Number of bytes written: " + nBytes
-								+ " from total: " + total);
+						//System.out.println("[" + sessionId + "] Number of bytes written: " + nBytes
+						//		+ " from total: " + total);
 						written += nBytes;
 						if (written < total) {
 							offset = (int) (written / buffers[0].capacity());
