@@ -46,4 +46,4 @@ mvn exec:java -Dexec.mainClass="org.jboss.nio2.client.JioClient" -Dexec.args="$h
 printf "max \t min \t avg\n" > $filename
 cat $log_file | egrep -v '[a-zA-Z]|^\s*$' >> $filename
 
-mvn exec:java -Dexec.mainClass="org.jboss.nio2.common.LogParser" -Dexec.args="$filename"
+#mvn exec:java -Dexec.mainClass="org.jboss.nio2.common.LogParser" -Dexec.args="$filename"
