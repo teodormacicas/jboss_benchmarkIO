@@ -130,7 +130,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 				initWriteBuffers();
 			}
 			// Write the file content to the channel
-			write(channel, this.writeBuffers, fileLength);
+			write(channel, this.writeBuffers);
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
@@ -245,6 +245,5 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 		byteBuffer.flip();
 		Future<Integer> count = channel.write(byteBuffer);
 		int written = count.get();
-		byteBuffer.clear();
 	}
 }
