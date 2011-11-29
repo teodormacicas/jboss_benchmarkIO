@@ -26,9 +26,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.util.Random;
 
 /**
@@ -167,7 +165,6 @@ public class JioClient extends Thread {
 		int counter = 0;
 		int min_count = 10 * 1000 / delay;
 		int max_count = 50 * 1000 / delay;
-		long running_time = System.currentTimeMillis();
 		while ((this.max--) > 0) {
 			sleep(this.delay);
 			time = System.currentTimeMillis();
@@ -191,8 +188,6 @@ public class JioClient extends Thread {
 			}
 			counter++;
 		}
-		running_time = System.currentTimeMillis() - running_time;
-		System.out.println("[Thread-" + getId() + "] Running time: " + running_time + " ms");
 		avg_time /= (max_count - min_count + 1);
 		// For each thread print out the maximum, minimum and average response
 		// times
