@@ -64,6 +64,10 @@ public class LogParser {
 		LinkedList<Double> avg_times = new LinkedList<Double>();
 
 		while ((line = br.readLine()) != null) {
+			if(line.matches("\\s*")) {
+				continue;
+			}
+			
 			counter++;
 			tab = line.split("\\s+");
 			// Max
