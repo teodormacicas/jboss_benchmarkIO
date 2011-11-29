@@ -21,9 +21,11 @@
  */
 package org.jboss.nio2.client;
 
+import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -127,14 +129,13 @@ public class JioClient extends Thread {
 	 * 
 	 * @throws Exception
 	 */
-	protected void connect(SocketAddress socketAddress) throws Exception {
+	protected void connect() throws Exception {
 		// Open connection with server
+		System.out.println("Connecting to server on " + this.hostname + ":" + this.port);
 		this.channel = new Socket(this.hostname, this.port);
-		System.out.println("Client IP: " + channel.getLocalAddress().getHostAddress());
 		this.dos = new DataOutputStream(this.channel.getOutputStream());
-		// this.br = new BufferedReader(new
-		// InputStreamReader(this.channel.getInputStream()));
 		this.is = this.channel.getInputStream();
+		System.out.println("Connection to server established ...");
 	}
 
 	/**
@@ -142,15 +143,12 @@ public class JioClient extends Thread {
 	 * @throws Exception
 	 */
 	protected void init() throws Exception {
-		System.out.println("Establish connection to server");
 		// Connect to the server
-		SocketAddress socketAddress = new InetSocketAddress(this.hostname, this.port);
-		this.connect(socketAddress);
-		System.out.println("Connection to server established");
+		this.connect();
 		System.out.println("Initializing communication...");
 		write("POST /session-" + getId() + CRLF);
-		String response = read();
-		System.out.println("Received from server -> " + response);
+		BufferedReader in = new BufferedReader(new InputStreamReader(this.channel.getInputStream()));
+		String response = in.readLine();
 		String tab[] = response.split("\\s+");
 		this.sessionId = tab[1];
 		System.out.println("Communication intialized -> Session ID:" + this.sessionId);
