@@ -150,6 +150,7 @@ public class JioClient extends Thread {
 		System.out.println("Initializing communication...");
 		write("POST /session-" + getId() + CRLF);
 		String response = read();
+		System.out.println("Received from server -> " + response);
 		String tab[] = response.split("\\s+");
 		this.sessionId = tab[1];
 		System.out.println("Communication intialized -> Session ID:" + this.sessionId);
