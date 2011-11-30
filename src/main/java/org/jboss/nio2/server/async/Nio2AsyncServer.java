@@ -104,13 +104,13 @@ public class Nio2AsyncServer {
 			final AsynchronousSocketChannel channel = future.get();
 			// Generate a new session id
 			String sessionId = generateId();
-			final ByteBuffer buffer = ByteBuffer.allocate(512);
+			final ByteBuffer readBuffer = ByteBuffer.allocate(512);
 			// Initialize the session
-			initSession(channel, buffer, sessionId);
+			initSession(channel, readBuffer, sessionId);
 			// Fix the channel send buffer size
 			channel.setOption(StandardSocketOptions.SO_SNDBUF, Nio2Utils.SO_SNDBUF);
-			channel.read(buffer, TIMEOUT, TIME_UNIT, channel, new ReadCompletionHandler(sessionId,
-					buffer));
+			channel.read(readBuffer, TIMEOUT, TIME_UNIT, channel, new ReadCompletionHandler(sessionId,
+					readBuffer));
 		}
 
 		listener.close();

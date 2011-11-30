@@ -84,8 +84,6 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 			readBuffer.flip();
 			byte bytes[] = new byte[nBytes];
 			readBuffer.get(bytes);
-			//System.out.println("[" + sessionId + "] " + new String(bytes).trim());
-
 			try {
 				// write response to client
 				writeResponse(channel);
@@ -201,8 +199,9 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 
 					@Override
 					public void completed(Long nBytes, Long total) {
-						//System.out.println("[" + sessionId + "] Number of bytes written: " + nBytes
-						//		+ " from total: " + total);
+						// System.out.println("[" + sessionId +
+						// "] Number of bytes written: " + nBytes
+						// + " from total: " + total);
 						written += nBytes;
 						if (written < total) {
 							offset = (int) (written / buffers[0].capacity());
@@ -241,9 +240,8 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	 *            the data that will be written to the channel
 	 * @throws IOException
 	 */
-	protected void write(AsynchronousSocketChannel channel, ByteBuffer byteBuffer) throws Exception {
+	protected int write(AsynchronousSocketChannel channel, ByteBuffer byteBuffer) throws Exception {
 		byteBuffer.flip();
-		Future<Integer> count = channel.write(byteBuffer);
-		int written = count.get();
+		return channel.write(byteBuffer).get();
 	}
 }
