@@ -32,7 +32,6 @@ import java.nio.channels.FileChannel;
 import java.util.concurrent.Future;
 
 import org.jboss.logging.Logger;
-import org.jboss.nio2.common.Nio2Utils;
 
 /**
  * {@code ReadCompletionHandler}

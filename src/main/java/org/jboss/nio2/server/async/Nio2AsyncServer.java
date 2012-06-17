@@ -34,7 +34,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.logging.Logger;
-import org.jboss.nio2.common.Nio2Utils;
 
 /**
  * {@code NioAsyncServer}
@@ -56,7 +55,6 @@ public class Nio2AsyncServer {
 	private static final Logger logger = Logger.getLogger(Nio2AsyncServer.class.getName());
 	protected static final long TIMEOUT = 20;
 	protected static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
-	private static final ExecutorService pool = Executors.newFixedThreadPool(500);
 
 	/**
 	 * Create a new instance of {@code Nio2AsyncServer}
@@ -76,6 +74,8 @@ public class Nio2AsyncServer {
 	}
 
 	/**
+	 * 
+	 * 
 	 * @param args
 	 * @throws Exception
 	 */
@@ -90,11 +90,15 @@ public class Nio2AsyncServer {
 			}
 		}
 
-		logger.infov("Starting NIO2 Synchronous Sever on port {0} ...", port);
-		AsynchronousChannelGroup threadGroup = AsynchronousChannelGroup.withThreadPool(pool);
+		logger.infov("Starting NIO2 Asynchronous Sever on port {0} ...", port);
+		// Create an Executor Service
+		final ExecutorService executor = Executors.newFixedThreadPool(500);
+		// Create an asynchronous channel group
+		AsynchronousChannelGroup threadGroup = AsynchronousChannelGroup.withThreadPool(executor);
+		// Create the asynchronous server socket channel
 		final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open(
 				threadGroup).bind(new InetSocketAddress(port));
-
+		
 		boolean running = true;
 		logger.info("Asynchronous Sever started...");
 
@@ -109,8 +113,8 @@ public class Nio2AsyncServer {
 			initSession(channel, readBuffer, sessionId);
 			// Fix the channel send buffer size
 			channel.setOption(StandardSocketOptions.SO_SNDBUF, Nio2Utils.SO_SNDBUF);
-			channel.read(readBuffer, TIMEOUT, TIME_UNIT, channel, new ReadCompletionHandler(sessionId,
-					readBuffer));
+			channel.read(readBuffer, TIMEOUT, TIME_UNIT, channel, new ReadCompletionHandler(
+					sessionId, readBuffer));
 		}
 
 		listener.close();
@@ -135,8 +139,7 @@ public class Nio2AsyncServer {
 		String response = "jSessionId: " + sessionId + CRLF;
 		// write initialization response to client
 		buffer.clear();
-		buffer.put(response.getBytes());
-		buffer.flip();
+		buffer.put(response.getBytes()).flip();
 		channel.write(buffer);
 		buffer.clear();
 	}

@@ -19,51 +19,32 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA, or see the FSF
  * site: http://www.fsf.org.
  */
-package org.jboss.nio2.common;
+package org.jboss.nio2.server.async;
 
-import java.nio.ByteBuffer;
+import java.util.UUID;
 
 /**
- * {@code Nio2Utils}
+ * {@code SessionGenerator}
  * 
- * Created on Nov 23, 2011 at 2:57:00 PM
+ * Created on Nov 1, 2011 at 2:25:20 PM
  * 
  * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
  */
-public final class Nio2Utils {
+public class SessionGenerator {
 
 	/**
-	 * 
+	 * Create a new instance of {@code SessionGenerator}
 	 */
-	public static final int WRITE_BUFFER_SIZE = 16 * 1024;
-	/**
-	 * 
-	 */
-	public static final String CRLF = "\r\n";
-	/**
-	 * The default server port
-	 */
-	public static final int SERVER_PORT = 8080;
-	/**
-	 * 
-	 */
-	public static final int SO_SNDBUF = 8 * 1024;
-
-	/**
-	 * Create a new instance of {@code Nio2Utils}
-	 */
-	private Nio2Utils() {
+	public SessionGenerator() {
 		super();
 	}
 
 	/**
-	 * Flip all the write byte buffers
 	 * 
-	 * @param buffers
+	 * @return
 	 */
-	public static void flipAll(ByteBuffer[] buffers) {
-		for (ByteBuffer bb : buffers) {
-			bb.flip();
-		}
+	public static String generateId() {
+		UUID uuid = UUID.randomUUID();
+		return uuid.toString();
 	}
 }
