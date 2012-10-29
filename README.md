@@ -24,3 +24,24 @@
 
 
 
+This project is a maven based project. So to build the project you should have
+maven installed on your machine. If you do not have it already installed, you can 
+download it form maven website:
+
+    http://maven.apache.org/download.html
+    
+    
+1) To build the project, use the script "build.sh"
+
+2) To run the project use the script "run.sh". This script requires 2 parameters:
+
+   * Type: the server type, i.e., "xnio3" or "nio2". This parameter is required
+   * Mode: the server mode, i.e., "sync" or "async". This parameter is required
+   * Port: the port number to which the server will binds. This parameter is
+           optional, the default value is 8080
+ 
+   Example: install_dir/nio2-xnio3-test$ sh run.sh nio2 async 8001
+   
+   
+   
+   

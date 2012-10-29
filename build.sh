@@ -30,3 +30,6 @@ mkdir target/conf
 cp conf/* target/conf
 mkdir target/logs
 touch target/logs/server.log
+mkdir target/data
+cp data/* target/data
+
