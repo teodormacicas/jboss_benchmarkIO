@@ -33,7 +33,7 @@ download it form maven website:
     
 1) To build the project, use the script "build.sh"
 
-2) To run the project use the script "run.sh". This script requires 2 parameters:
+2) To run the project use the script "run.sh". This script requires 3 parameters:
 
    * Type: the server type, i.e., "xnio3" or "nio2". This parameter is required
    * Mode: the server mode, i.e., "sync" or "async". This parameter is required
