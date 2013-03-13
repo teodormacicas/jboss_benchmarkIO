@@ -1,0 +1,7 @@
+# target folders
+netty-client/target/
+netty-server/target/
+nio2-client/target/
+nio2-server/target/
+xnio3-client/target/
+xnio3-server/target/
