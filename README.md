@@ -10,4 +10,4 @@ we target to create a small automated testing framework, rather than running eve
 manually. 
 
 The context of this work is the workshop from University of Neuchatel part of our M.Sc. studies 
-in Computer Science department. 
+in Computer Science department under supervision of RedHat Neutchatel.  
