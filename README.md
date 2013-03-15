@@ -11,3 +11,5 @@ manually.
 
 The context of this work is the workshop from University of Neuchatel part of our M.Sc. studies 
 in Computer Science department under supervision of RedHat Neutchatel.  
+
+Check here the repo structure: https://github.com/teodormacicas/jboss_benchmarkIO/wiki/Repo-structure
