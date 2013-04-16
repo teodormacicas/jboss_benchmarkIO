@@ -23,7 +23,7 @@
  * St, Fifth Floor,
  * Boston, MA 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.jboss.test.client;
+package org.jboss.nio2.client;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;

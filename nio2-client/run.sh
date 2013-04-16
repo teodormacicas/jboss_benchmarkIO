@@ -94,7 +94,7 @@ printf "  \tMode: $mode\n";
 printf "  \tPort: $port\n";
 echo "";
 
-java $JAVA_OPTS -jar target/nio2-xnio3-test.jar $type $mode $port
+java $JAVA_OPTS -jar target/jboss-nio2-client-1.0.jar $type $mode $port
 
 #eval \"$JAVA\" $JAVA_OPTS \
 #         -jar target/nio2-xnio3-test.jar $type $mode $port
