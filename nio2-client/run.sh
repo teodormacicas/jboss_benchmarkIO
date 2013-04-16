@@ -29,51 +29,74 @@
 # @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
 
 
-url=$1;
-n=$2;
-delay=$3;
-nReq=$4;
-nClients=$5;
+type=$1;
+mode=$2;
+port=$3;
 
-if [ "x$url" = "x" ]; then
-	echo "ERROR: The have to provide a URL";
+DIRNAME=`dirname "$0"`
+
+# Read an optional running configuration file
+if [ "x$RUN_CONF" = "x" ]; then
+    RUN_CONF="$DIRNAME/conf/run.conf"
+fi
+if [ -r "$RUN_CONF" ]; then
+    . "$RUN_CONF"
+fi
+
+# Setup the JVM
+if [ "x$JAVA" = "x" ]; then
+    if [ "x$JAVA_HOME" != "x" ]; then
+        JAVA="$JAVA_HOME/bin/java"
+    else
+        JAVA="java"
+    fi
+fi
+
+XNIO3_NIO2_HOME=`cd "$DIRNAME/."; pwd`
+
+# Display our environment
+echo ""
+echo "========================================================================="
+echo ""
+echo "  XNIO3 & NIO.2 Server Bootstrap Environment"
+echo ""
+echo "  XNIO3_NIO2_HOME: $XNIO3_NIO2_HOME"
+echo ""
+echo "  JAVA: $JAVA"
+echo ""
+echo "  JAVA_OPTS: $JAVA_OPTS"
+echo ""
+echo "========================================================================="
+echo ""
+echo ""
+
+if [ "x$type" = "x" ]; then
+	printf "ERROR: you should provide a type of the server to run (xnio3 or nio2)\n";
+	printf " --> Example: sh run.sh xnio3 async 8080\n";
 	exit -1;
 fi
 
-if [ "x$n" = "x" ]; then
-	n=1000;
+if [ "x$mode" = "x" ]; then
+	printf "ERROR: you should provide a running mode of the server (sync or async)\n";
+	printf " --> Example: sh run.sh xnio3 async 8080\n";
+	exit -1;
 fi
 
-if [ "x$delay" = "x" ]; then
-	delay=1000;
+if [ "x$port" = "x" ]; then
+	printf "ERROR: you should provide a port number on which the server will binds (e.g., 8080)\n";
+	printf " --> Example: sh run.sh xnio3 async 8080\n";
+	exit -1;
 fi
 
-if [ "x$nReq" = "x" ]; then
-	nReq=1000000;
-fi
-
-if [ "x$nClients" = "x" ]; then
-	nClients=$n;
-fi
-
-log_file=$(date +%s)-log.txt
-filename=$n-$delay-$log_file
-printf "Running clients with:\n";
+printf "  Running server application with parameters \n";
+printf "  \tType: $type\n";
+printf "  \tMode: $mode\n";
+printf "  \tPort: $port\n";
 echo "";
-printf "\tURL: $url\n";
-printf "\tNumber of clients: $n\n";
-printf "\tDelay: $delay\n";
-printf "\tTotal number of requests: $nReq\n";
-printf "\tTotal number of clients: $nClients\n";
 
-printf "\n\t-> Log file: $filename\n";
+java $JAVA_OPTS -jar target/nio2-xnio3-test.jar $type $mode $port
 
-mvn exec:java -Dexec.mainClass="org.jboss.nio2.client.JioClient" -Dexec.args="$url $n $delay $nReq $nClients" > $log_file
-
-#printf "max \t min \t avg\n" > $filename
-#cat $log_file | egrep -v '[a-zA-Z]|^\s*$' >> $filename
-cat $log_file | egrep -v '[a-zA-Z]|^\s*$' >> ~/$n-$delay-$nReq-$nClients-log.txt
-
-
-#mvn exec:java -Dexec.mainClass="org.jboss.nio2.client.LogParser" -Dexec.args="$filename $nReq"
-
+#eval \"$JAVA\" $JAVA_OPTS \
+#         -jar target/nio2-xnio3-test.jar $type $mode $port
+#         "$@"
+#      XNIO3_NIO2_STATUS=$?
