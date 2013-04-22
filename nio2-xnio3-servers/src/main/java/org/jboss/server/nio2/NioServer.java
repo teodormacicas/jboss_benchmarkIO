@@ -78,7 +78,9 @@ public abstract class NioServer extends AbstractServer {
 				while (running) {
 					Future<AsynchronousSocketChannel> future = listener.accept();
 					final AsynchronousSocketChannel channel = future.get();
-					// Process the channel
+                                        System.out.println("Incoming connection from: " + channel.getRemoteAddress());
+                                        
+					// Process the channel (which basically is a request)
 					processChannel(channel);
 				}
 			}

@@ -60,14 +60,18 @@ public class SyncServer extends NioServer {
 		// Generate a new session id
 		String sessionId = generateSessionId();
 		final ByteBuffer readBuffer = ByteBuffer.allocate(512);
+                
 		// Initialize the session
 		initSession(channel, readBuffer, sessionId);
-		// Fix the channel send buffer size
+		
+                // Fix the channel send buffer size
 		channel.setOption(StandardSocketOptions.SO_SNDBUF, Nio2Utils.SO_SNDBUF);
-		// Create a new client manager
+		
+                // Create a new client manager
 		Nio2ClientManager manager = new Nio2ClientManager(channel);
 		manager.setSessionId(sessionId);
-		// Execute the client manager
+		
+                // Execute the client manager
 		executor.execute(manager);
 	}
 }
