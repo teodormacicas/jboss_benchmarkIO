@@ -62,10 +62,12 @@ public class AsyncServer extends NioServer {
 	public void processChannel(final AsynchronousSocketChannel channel) throws Exception {
 
 		channel.setOption(StandardSocketOptions.SO_SNDBUF, Nio2Utils.SO_SNDBUF);
-		final String sessionId = generateSessionId();
+		// assign one session ID to every client (one client can send multiple requests)
+                final String sessionId = generateSessionId();
 		final ByteBuffer buffer = ByteBuffer.allocate(512);
+                
+                //receiving data
 		channel.read(buffer, channel, new CompletionHandler<Integer, AsynchronousSocketChannel>() {
-
 			@Override
 			public void completed(Integer nBytes, AsynchronousSocketChannel attachment) {
 				if (nBytes < 0) {
@@ -75,12 +77,15 @@ public class AsyncServer extends NioServer {
 				if (nBytes > 0) {
 					byte bytes[] = new byte[nBytes];
 					buffer.get(bytes);
-					System.out.println("[" + sessionId + "] " + new String(bytes).trim());
+					System.out.println("New session: [" + sessionId + "] " + new String(bytes).trim());
 					String response = "jSessionId: " + sessionId + CRLF;
+                                        
 					// write initialization response to client
 					buffer.clear();
 					buffer.put(response.getBytes()).flip();
-					attachment.write(buffer, attachment,
+			
+                                        // write the session id and then read (but WHAT ?!)
+                                        attachment.write(buffer, attachment,
 							new CompletionHandler<Integer, AsynchronousSocketChannel>() {
 
 								@Override

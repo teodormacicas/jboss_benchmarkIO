@@ -80,14 +80,21 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 			readBuffer.flip();
 			byte bytes[] = new byte[nBytes];
 			readBuffer.get(bytes);
+                        // get the filename out of the request
+                        // e.g. GET /data/file.txt?jSessionId=d85381bc-da9e-4cee-878f-6f486bb1ecec HTTP/1.1
+                        // retrieve the "/data/file.txt" 
+                        String req = new String(bytes);
+                        req = req.substring(req.indexOf(" ")+1);
+                        req = req.substring(0, req.indexOf("?"));
+                        //System.out.println("READ BUFFER " + req.substring(1));
 			try {
-				// write response to client
-				writeResponse(channel);
+				// write response to client; remove the leading '/' from filename
+				writeResponse(channel, req.substring(1));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
-		// Read again with the this CompletionHandler
+		// Read again with this CompletionHandler
 		readBuffer.clear();
 		channel.read(readBuffer, Nio2Utils.TIMEOUT, Nio2Utils.TIME_UNIT, channel, this);
 	}
@@ -117,9 +124,9 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	 *            the {@code AsynchronousSocketChannel} channel to which write
 	 * @throws Exception
 	 */
-	protected void writeResponse(AsynchronousSocketChannel channel) throws Exception {
+	protected void writeResponse(AsynchronousSocketChannel channel, String filename) throws Exception {
 		if (this.writeBuffers == null) {
-			initWriteBuffers();
+			initWriteBuffers(filename);
 		}
 		// Write the file content to the channel
 		write(channel, this.writeBuffers);
@@ -141,9 +148,8 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	 * 
 	 * @throws IOException
 	 */
-	private void initWriteBuffers() throws IOException {
-
-		File file = new File("data" + File.separatorChar + "file32k.txt");
+	private void initWriteBuffers(String filename) throws IOException {
+		File file = new File(filename);
 		try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
 			FileChannel fileChannel = raf.getChannel();
 
@@ -151,15 +157,20 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 			double tmp = (double) fileLength / Nio2Utils.WRITE_BUFFER_SIZE;
 			int length = (int) Math.ceil(tmp);
 			writeBuffers = new ByteBuffer[length];
+                        //System.out.println("File length: " + fileLength + " no of buffers " + length);
 
-			for (int i = 0; i < writeBuffers.length - 1; i++) {
+			for (int i = 0; i < writeBuffers.length-1; i++) {
 				writeBuffers[i] = ByteBuffer.allocate(Nio2Utils.WRITE_BUFFER_SIZE);
 			}
-
+                        // adjust the size of last buffer 
 			int temp = (int) (fileLength % Nio2Utils.WRITE_BUFFER_SIZE);
-			writeBuffers[writeBuffers.length - 1] = ByteBuffer.allocateDirect(temp);
+			writeBuffers[writeBuffers.length - 1] = ByteBuffer.allocate(temp);   // allocateDirect() seems not to work ... 
 			// Read the whole file in one pass
 			fileChannel.read(writeBuffers);
+                        
+                        /*for (int i = 0; i < writeBuffers.length; i++) {
+                            System.out.println("WriteBuffer " + i + "\n" + new String(writeBuffers[i].array()));
+                        }*/
 		}
 		// Put the <i>CRLF</i> chars at the end of the last byte buffer to mark
 		// the end of data
@@ -173,11 +184,14 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	 * @param length
 	 * @throws Exception
 	 */
+        // WHO CALLS THIS ?!?! I COULD NOT FIND WHERE THIS IS CALLED FROM 
 	protected void write(final AsynchronousSocketChannel channel, final ByteBuffer[] buffers,
 			final long total) throws Exception {
 
 		// Flip all the write byte buffers
 		flipAll(buffers);
+                
+                System.out.println("WRITE RESPONSE TO CLIENT");
 		// Write response to client
 		channel.write(buffers, 0, buffers.length, Nio2Utils.TIMEOUT, Nio2Utils.TIME_UNIT, total,
 				new CompletionHandler<Long, Long>() {
@@ -197,6 +211,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 
 					@Override
 					public void failed(Throwable exc, Long attachment) {
+                                                System.out.println("FAILED !!!");
 						exc.printStackTrace();
 					}
 				});
@@ -208,12 +223,17 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
 	 * @param buffers
 	 * @throws Exception
 	 */
-	protected void write(final AsynchronousSocketChannel channel, final ByteBuffer[] buffers)
-			throws Exception {
-		for (ByteBuffer buffer : buffers) {
-			write(channel, buffer);
-		}
-	}
+	protected void write(final AsynchronousSocketChannel channel, final ByteBuffer[] buffers) {
+                int cnt = 0;
+                try {
+                    for (ByteBuffer buffer : buffers) {
+                            //System.out.println("WRITE BUFFER " + (++cnt));
+                            write(channel, buffer);
+                    }
+                } catch( Exception e ) { 
+                    e.printStackTrace();
+                }
+	}   
 
 	/**
 	 * Write the byte buffer to the specified channel
