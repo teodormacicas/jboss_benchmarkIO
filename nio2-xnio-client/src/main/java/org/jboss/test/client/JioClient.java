@@ -30,6 +30,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.Inet4Address;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
@@ -106,15 +107,16 @@ public class JioClient extends Thread {
 	@Override
 	public void run() {
 		try {
-			// Initialize the communication between client and server
 			sleep(RAND.nextInt(2000));
+                        // Initialize the communication between client and server
 			init();
+                        
 			while (COUNTER.get() < N_THREADS) {
 				sleep(100);
 			}
-			
 			// wait for 2 seconds until all threads are ready
 			sleep(2 * DEFAULT_DELAY);
+                        
 			runit();
 		} catch (Throwable exp) {
 			exp.printStackTrace();
@@ -148,13 +150,21 @@ public class JioClient extends Thread {
 		// Connect to the server
 		sleep(RAND.nextInt(5000));
 		this.connect();
-		write("POST /session-" + getId() + CRLF);
-		System.out.println("READ FROM SERVER");
+                
+                // HTTP REQUEST HERE  (every client gets its own session)
+		write("POST /session-" + getId() +"-"+Inet4Address.getLocalHost().toString()+" HTTP/1.1" + CRLF + CRLF);
+               
 		BufferedReader in = new BufferedReader(new InputStreamReader(this.channel.getInputStream()));
 		String response = in.readLine();
-		System.out.println("RECIEVED FROM SERVER : " + response);
+                // do this trick for Netty as first line contain HTTP header
+                while( ! response.startsWith("jSessionId:") ) {
+                    response = in.readLine();
+                }
+                
+		System.out.println("RECEIVED FROM SERVER : " + response);
 		String tab[] = response.split("\\s+");
-		this.sessionId = tab[1];
+                this.sessionId = tab[1];
+		//this.sessionId = "da";
 	}
 	
 	/**
@@ -183,12 +193,26 @@ public class JioClient extends Thread {
 			//System.out.println("WRITE TO SERVER");
 			sleep(this.delay);
 		        timeWrite =  System.nanoTime();
-			write("GET /data/file.txt?jSessionId=" + this.sessionId + " HTTP/1.1" + CRLF);
-			response = read();
+                        
+                        // HTTP REQUEST HERE !!! 
+                        StringBuffer buf = new StringBuffer();
+                        buf.append("GET /data/file.txt?jSessionId=" + this.sessionId + " HTTP/1.1" + CRLF);
+                        /*if( this.max != 0 ) {
+                            buf.append("Connection: keep-alive \n");
+                        }*/
+                        buf.append(CRLF);
+			write(buf.toString());
+
+                        System.out.println("Send this HTTP request: ");
+                        System.out.println("GET /data/file.txt?jSessionId=" + this.sessionId + " HTTP/1.1" + CRLF + CRLF);
+                        
+                        //get the response 
+                        response = read();
+                        
 			// time = System.currentTimeMillis() - time;
 			timeRead = System.nanoTime();
 			// delays.add(time);
-			System.out.println("WRITE " + (timeWrite - startTime) + " READ " + (timeRead - startTime));
+			System.out.println("WRITE " + (timeWrite - startTime) + "ns | READ " + (timeRead - startTime) + "ns");
 		        delays.add(timeRead - timeWrite);
 
 			/*
@@ -232,14 +256,39 @@ public class JioClient extends Thread {
 		byte bytes[] = new byte[READ_BUFFER_SIZE];
 		int nBytes = -1;
 		long n = 0;
+                
 		while ((nBytes = this.is.read(bytes)) != -1) {
 			n += nBytes;
-			if (nBytes >= 2 && bytes[nBytes - 1] == '\n' && bytes[nBytes - 2] == '\r') {
-				// System.out.println("\n**** CRLF attemped ****");
+                        //System.out.println(new String(bytes, 0, nBytes));
+                        // NUL signals the end of the request
+                        if (nBytes >= 1 && bytes[nBytes - 1] == '\0' ) { // && bytes[nBytes - 2] == '\r') {
+                                System.out.println("\n**** NUL attemped ****");
 				break;
 			}
 		}
-		
+            /*    System.out.println("header: " + header.toString());
+                int content_length=0;
+                // we have the header here, get the "Content-length:" value 
+                String header_lines[] = header.toString().split("\n");
+                for( int i=0; i < header_lines.length; ++i ) { 
+                    if( header_lines[i].startsWith("Content-Length:") ) { 
+                        content_length = Integer.parseInt(
+                                header_lines[i].substring(header_lines[i].indexOf(":")+1).trim());
+                        break;
+                    }
+                }
+                //System.out.println("Content length: " + content_length );
+                int read=0;
+                while ((nBytes = this.is.read(bytes)) != -1) {
+                    read += nBytes;
+                    System.out.println("content: " + new String(bytes, 0, nBytes));
+                    System.out.println("read: " + read + " total content length " + content_length);
+                    if( read >= content_length ) { 
+                        break;
+                    }
+                }*/
+                // print here data received from server (the file content)
+                //System.out.println(new String(bytes));
 		return "Hello world!";
 	}
 	
