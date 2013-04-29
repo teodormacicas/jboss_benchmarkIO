@@ -52,15 +52,15 @@ if [ "x$JAVA" = "x" ]; then
     fi
 fi
 
-XNIO3_NIO2_HOME=`cd "$DIRNAME/."; pwd`
+NETTY_XNIO3_NIO2_HOME=`cd "$DIRNAME/."; pwd`
 
 # Display our environment
 echo ""
 echo "========================================================================="
 echo ""
-echo "  XNIO3 & NIO.2 Server Bootstrap Environment"
+echo "  Netty, XNIO3, NIO.2 Server Bootstrap Environment"
 echo ""
-echo "  XNIO3_NIO2_HOME: $XNIO3_NIO2_HOME"
+echo "  NETTY_XNIO3_NIO2_HOME: $NETTY_XNIO3_NIO2_HOME"
 echo ""
 echo "  JAVA: $JAVA"
 echo ""
