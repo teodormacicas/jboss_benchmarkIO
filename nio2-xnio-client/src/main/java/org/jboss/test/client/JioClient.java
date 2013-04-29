@@ -78,6 +78,10 @@ public class JioClient extends Thread {
 	private static final AtomicInteger	COUNTER				= new AtomicInteger(0);
 	private static final Random			RAND				= new Random();
 	
+        // used for synchronizing threads
+        private static AtomicInteger counter;
+        private static Object lock;
+        
 	/**
 	 * Create a new instance of {@code JioClient}
 	 * 
@@ -91,6 +95,8 @@ public class JioClient extends Thread {
 		this.port = port;
 		this.max = d_max;
 		this.delay = delay;
+                JioClient.counter = new AtomicInteger(0);
+                JioClient.lock = new Object();
 	}
 	
 	/**
@@ -114,9 +120,14 @@ public class JioClient extends Thread {
 			while (COUNTER.get() < N_THREADS) {
 				sleep(100);
 			}
-			// wait for 2 seconds until all threads are ready
-			sleep(2 * DEFAULT_DELAY);
                         
+                        // increment the counter and spin lock
+                        JioClient.counter.incrementAndGet();
+                        synchronized( JioClient.lock ) {
+                            JioClient.lock.wait();
+                        }
+                        
+                        // all threads will start this at pseudo-equal time
 			runit();
 		} catch (Throwable exp) {
 			exp.printStackTrace();
@@ -164,7 +175,6 @@ public class JioClient extends Thread {
 		System.out.println("RECEIVED FROM SERVER : " + response);
 		String tab[] = response.split("\\s+");
                 this.sessionId = tab[1];
-		//this.sessionId = "da";
 	}
 	
 	/**
@@ -262,7 +272,7 @@ public class JioClient extends Thread {
                         //System.out.println(new String(bytes, 0, nBytes));
                         // NUL signals the end of the request
                         if (nBytes >= 1 && bytes[nBytes - 1] == '\0' ) { // && bytes[nBytes - 2] == '\r') {
-                                System.out.println("\n**** NUL attemped ****");
+                                System.out.println("\n**** NUL attempted ****");
 				break;
 			}
 		}
@@ -335,7 +345,7 @@ public class JioClient extends Thread {
 					}
 					
 					if (nReq < n) {
-						System.err.println("EhRROR: you should have nReq >= n");
+						System.err.println("ERROR: you should have nReq >= n");
 						System.err.println("Adjusting nReq to " + n);
 						nReq = n;
 					}
@@ -366,6 +376,18 @@ public class JioClient extends Thread {
 		for (int i = 0; i < clients.length; i++) {
 			clients[i].start();
 		}
+                
+                // wait that all threads incremented the counter, thus saying that they are 
+                // ready to go further
+                while( JioClient.counter.get() != clients.length ) {
+                    System.out.println("Wait the threads to reach same state ...");
+                    Thread.sleep(500);
+                }
+                System.out.println("Threads are now on same state, so release all of them!");
+                // the counter is set, so release the threads 
+                synchronized(JioClient.lock) {
+                    JioClient.lock.notifyAll();
+                }
 		
 		for (int i = 0; i < clients.length; i++) {
 			clients[i].join();
