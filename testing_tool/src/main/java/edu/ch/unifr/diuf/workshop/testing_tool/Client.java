@@ -175,29 +175,7 @@ public class Client extends Machine
      */
     public void uploadProgram(String file) throws FileNotFoundException, IOException {
         this.uploadFile(file, Utils.getClientProgramRemoteFilename(this));
-    }                //System.out.println(IOUtils.readFully(cmd.getInputStream()).toString());
-    
-    //TODO: 
-    public void checkClientServerConnectivity() { 
-        
-    }
-    
-    /**
-     * 
-     * @throws ClientNotProperlyInitException
-     * @throws TransportException
-     * @throws IOException 
-     */
-    public void startProgram() throws ClientNotProperlyInitException, 
-            TransportException, IOException {
-        // check that at least server ip and port are set 
-        if( serverIpAddress.equals("0.0.0.0") || serverPort == 0 )
-            throw new ClientNotProperlyInitException("Please set the server IP address "
-                    + " as well as the server port for the client " + this.getIpAddress() 
-                    + " UUID: " + this.getUUID());
-        SSHCommands.startClientProgram(this);
-        
-    }
+    }              
     
     /**
      * 
@@ -227,8 +205,15 @@ public class Client extends Machine
      * @throws TransportException
      * @throws IOException 
      */
-    public int runClientRemotely() throws TransportException, IOException { 
-        return SSHCommands.startClientProgram(this);
+    public int runClientRemotely(Server server) throws TransportException, IOException { 
+        int r = SSHCommands.startClientProgram(this, server);
+        if( r != 0 ) { 
+            System.out.println("[ERROR] Client could not be properly started! "
+                    + "Exit code: " + r);
+            return -1;
+        }
+        this.setPID(SSHCommands.getProgramPID(this));
+        return 0;
     }
 }
 

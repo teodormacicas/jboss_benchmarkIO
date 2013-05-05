@@ -26,6 +26,7 @@
 
 package org.jboss.server;
 
+import java.lang.management.ManagementFactory;
 import org.jboss.logging.Logger;
 
 /**
@@ -62,8 +63,7 @@ public abstract class Server {
 			System.err.println("  --> type: xnio, nio or netty (Allowed values: \"xnio3\", \"nio2\" and \"netty\")");
 			System.err.print("  --> mode: the channel processing mode, i.e, sync/async (");
 			System.err.println("Allowed values: \"sync\" or \"async\"; Netty is always asynch)");
-			System.err
-					.println("  --> port: the server port number to which the server channel will bind.");
+			System.err.println("  --> port: the server port number to which the server channel will bind.");
 			System.err.println("            Default value: 8080");
 			System.out.println();
 			System.exit(-1);
@@ -79,6 +79,10 @@ public abstract class Server {
 			}
 		}
 
+                //IMPORTANT FOR TESTING TOOL; DO NOT DELETE!
+                String PID = ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
+                System.out.println("PID: "+PID);
+                
 		switch (args[0]) {
 			case "nio2":
 				org.jboss.server.nio2.MainServer.run(args[1], port);

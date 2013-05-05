@@ -5,9 +5,9 @@ import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Session.Command;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+import java.io.InputStream;
+import java.util.StringTokenizer;
 import net.schmizz.sshj.common.IOUtils;
-import net.schmizz.sshj.connection.channel.direct.Session.Shell;
 import net.schmizz.sshj.transport.TransportException;
 
 /** This examples demonstrates how a remote command can be executed. */
@@ -80,6 +80,41 @@ public class SSHCommands
         }
     }
     
+    
+    /**
+     * 
+     * @param machine
+     * @param localFile
+     * @param remoteFile
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public static void downloadRemoteFile(Machine machine, String localFile, String remoteFile) 
+            throws IOException 
+    {
+        SSHClient ssh = new SSHClient();
+        ssh.loadKnownHosts(); 
+        ssh.connect(machine.getIpAddress(), machine.getPort());   
+        
+        try {
+            // UNFORTUNATELY, authPublicKey could not make it working! :(
+            ssh.authPassword(machine.getSSHUsername(), machine.getSSHPassword());
+            final Session session = ssh.startSession();
+            try {
+                // Compression = significant speedup for large file transfers on fast links
+                // present here to demo algorithm renegotiation - could have just put this before connect()
+                ssh.useCompression();
+                ssh.newSCPFileTransfer().download(localFile, remoteFile);
+            } finally {
+                // whatever happens, do not forget to close the session
+                session.close();
+            }
+        } finally {
+            // whatever happens, do not forget to disconnect the client
+            ssh.disconnect();
+        }
+    }
+    
     /**
      * 
      * @param machine
@@ -133,7 +168,7 @@ public class SSHCommands
             final Session session = ssh.startSession();
             try {
                 // run just a dummy command
-                final Command cmd = session.exec("rm " + remoteFile);
+                final Command cmd = session.exec("rm -r " + remoteFile);
                 cmd.join();
                 return cmd.getExitStatus();
             } finally {
@@ -145,7 +180,6 @@ public class SSHCommands
             ssh.disconnect();
         }
     }
-
     
     /**
      * Test if a client can ping the server => it has network connection.
@@ -181,7 +215,6 @@ public class SSHCommands
         }
     }
     
-    
     /**
      * 
      * @param client
@@ -189,7 +222,7 @@ public class SSHCommands
      * @throws TransportException
      * @throws IOException 
      */
-    public static int startClientProgram(Client client) throws TransportException, IOException 
+    public static int startClientProgram(Client client, Server server) throws TransportException, IOException 
     {
         SSHClient ssh = new SSHClient();
         ssh.loadKnownHosts(); 
@@ -203,10 +236,14 @@ public class SSHCommands
                 StringBuilder sb = new StringBuilder();
                 sb.append("java -jar "); 
                 sb.append(Utils.CLIENT_PROGRAM_REMOTE_FILENAME);
+                // flag for distributed mode enabled (to enable the synch mechanism via files)
+                sb.append(" yes ");  
+                sb.append(server.getIpAddress());
                 sb.append(" ");
-                sb.append(client.getIpAddress());
+                sb.append(server.getServerHttpPort());
                 sb.append(" ");
-                sb.append(client.getServerPort());
+                // because distributed mode is yes, then add client id here 
+                sb.append(client.getUUID());
                 sb.append(" ");
                 sb.append(client.getNoThreads());
                 sb.append(" ");
@@ -251,7 +288,7 @@ public class SSHCommands
             final Session session = ssh.startSession();
             try {
                 StringBuilder sb = new StringBuilder();
-                sb.append("(java -jar "); 
+                sb.append("java -jar "); 
                 sb.append(Utils.SERVER_PROGRAM_REMOTE_FILENAME);
                 sb.append(" ");
                 sb.append(server.getServerType());
@@ -263,25 +300,158 @@ public class SSHCommands
                 // output to a log file 
                 sb.append(" &> ");
                 sb.append(Utils.getServerLogRemoteFilename(server));
-                sb.append(" &) &&  ");
+                sb.append(" & ");
                 
-                
-                //TODO: 
-                //maybe use this to get the PID:  ps cax | grep httpd | grep -o '^[ ]*[0-9]*'
-                
-                // get PID 
-                sb.append(" ( echo $! )");
-                
-                System.out.println("Run command: " + sb.toString());
+                //System.out.println("Run command: " + sb.toString());
                 final Command cmd = session.exec(sb.toString());
                 cmd.join();
+                return cmd.getExitStatus();
+            } finally {
+                // whatever happens, do not forget to close the session
+                session.close();
+            }
+        } finally {
+            // whatever happens, do not forget to disconnect the client
+            ssh.disconnect();
+        }
+    }
+    
+    /**
+     * 
+     * @param server
+     * @return
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public static int killServerProgram(Server server) throws TransportException, IOException 
+    {
+        SSHClient ssh = new SSHClient();
+        ssh.loadKnownHosts(); 
+        ssh.connect(server.getIpAddress(), server.getPort());   
                 
-                //return cmd.getExitStatus();
-                // return the PID
-                String res = IOUtils.readFully(cmd.getInputStream()).toString();
-                System.out.println("START SERVER RESULT: " + res);
+        try {
+            // UNFORTUNATELY, authPublicKey could not make it working! :(
+            ssh.authPassword(server.getSSHUsername(), server.getSSHPassword());
+            final Session session = ssh.startSession();
+            try {
+                StringBuilder sb = new StringBuilder();
+                sb.append("kill "); 
+                sb.append(server.getPID());
+                //System.out.println("Run command: " + sb.toString());
+                final Command cmd = session.exec(sb.toString());
+                cmd.join();
+                return cmd.getExitStatus();
+            } finally {
+                // whatever happens, do not forget to close the session
+                session.close();
+            }
+        } finally {
+            // whatever happens, do not forget to disconnect the client
+            ssh.disconnect();
+        }
+    }
+    
+    /**
+     * 
+     * @param server
+     * @return
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public static int getProgramPID(Machine machine) throws TransportException, IOException 
+    {
+        SSHClient ssh = new SSHClient();
+        ssh.loadKnownHosts(); 
+        ssh.connect(machine.getIpAddress(), machine.getPort());   
                 
-                return 9999;
+        try {
+            // UNFORTUNATELY, authPublicKey could not make it working! :(
+            ssh.authPassword(machine.getSSHUsername(), machine.getSSHPassword());
+            final Session session = ssh.startSession();
+            try {
+                StringBuilder sb = new StringBuilder();
+                sb.append("head ");
+                if( machine instanceof Server ) 
+                    sb.append(Utils.getServerLogRemoteFilename(machine));
+                else if ( machine instanceof Client ) 
+                    sb.append(Utils.getClientLogRemoteFilename(machine));
+                sb.append(" | grep PID | cut -d ' ' -f 2 ");
+                final Command cmd = session.exec(sb.toString());
+                InputStream is = cmd.getInputStream();
+                byte buffer[] = new byte[255];
+                is.read(buffer);
+                String buf = new String(buffer).trim();
+                //System.out.println(new String(buffer));
+                cmd.join();
+                return Integer.valueOf(buf);
+            } finally {
+                // whatever happens, do not forget to close the session
+                session.close();
+            }
+        } finally {
+            // whatever happens, do not forget to disconnect the client
+            ssh.disconnect();
+        }
+    }
+    
+    /**
+     * 
+     * @param machine
+     * @param filename
+     * @return
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public static int createRemoteFile(Machine machine, String filename) throws TransportException, IOException 
+    {
+        SSHClient ssh = new SSHClient();
+        ssh.loadKnownHosts(); 
+        ssh.connect(machine.getIpAddress(), machine.getPort());   
+                
+        try {
+            // UNFORTUNATELY, authPublicKey could not make it working! :(
+            ssh.authPassword(machine.getSSHUsername(), machine.getSSHPassword());
+            final Session session = ssh.startSession();
+            try {
+                StringBuilder sb = new StringBuilder();
+                sb.append("touch ");
+                sb.append(filename);
+                final Command cmd = session.exec(sb.toString());
+                cmd.join();
+                return cmd.getExitStatus();
+            } finally {
+                // whatever happens, do not forget to close the session
+                session.close();
+            }
+        } finally {
+            // whatever happens, do not forget to disconnect the client
+            ssh.disconnect();
+        }
+    }
+
+    /**
+     * 
+     * @param machine
+     * @param folderName
+     * @return
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public static int createRemoteFolder(Machine machine, String folderName) throws TransportException, IOException 
+    {
+        SSHClient ssh = new SSHClient();
+        ssh.loadKnownHosts(); 
+        ssh.connect(machine.getIpAddress(), machine.getPort());   
+                
+        try {
+            // UNFORTUNATELY, authPublicKey could not make it working! :(
+            ssh.authPassword(machine.getSSHUsername(), machine.getSSHPassword());
+            final Session session = ssh.startSession();
+            try {
+                // run just a dummy command
+                final Command cmd = session.exec("mkdir " + folderName);
+                cmd.join();
+                return cmd.getExitStatus();
             } finally {
                 // whatever happens, do not forget to close the session
                 session.close();
@@ -327,6 +497,5 @@ public class SSHCommands
             // whatever happens, do not forget to disconnect the client
             ssh.disconnect();
         }
-    }
-    
+    }   
 }

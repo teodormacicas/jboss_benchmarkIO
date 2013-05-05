@@ -1,6 +1,11 @@
 package edu.ch.unifr.diuf.workshop.testing_tool;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import net.schmizz.sshj.transport.TransportException;
 
@@ -10,6 +15,8 @@ import net.schmizz.sshj.transport.TransportException;
  */
 public class Server extends Machine
 {    
+     // a path to a folder containing data to be used by the client requests
+     private String dataFolderPath;
      // running parameters of the server 
      private String serverType; 
      private String serverMode; 
@@ -23,7 +30,23 @@ public class Server extends Machine
         this.setPort(port);
         this.setSSHUsername(sshUsername);
         this.setSSHPassword(sshPassword);
-    }
+     }
+     
+     
+     /**
+      * 
+      * @param path 
+      */
+     public void setDataFolderPath(String path) { 
+         this.dataFolderPath = path;
+     }
+     
+     /**
+      * 
+      */
+     public String getDataFolderPath() { 
+         return this.dataFolderPath;
+     }
      
      /**
       * 
@@ -101,7 +124,45 @@ public class Server extends Machine
      * @throws IOException 
      */
     public int runServerRemotely() throws TransportException, IOException { 
-        return SSHCommands.startServerProgram(this);
+        int r = SSHCommands.startServerProgram(this);
+        if( r != 0 ) { 
+            System.out.println("[ERROR] Server could not be properly started! "
+                    + "Exit code: " + r);
+            getServerLogAndPrintIt();
+            return -1;
+        }
+        this.setPID(SSHCommands.getProgramPID(this));
+        return 0;
+    }
+    
+    /**
+     * 
+     * @throws IOException 
+     */
+    private void getServerLogAndPrintIt() throws IOException { 
+        SSHCommands.downloadRemoteFile(this, Utils.getServerLogRemoteFilename(this), 
+                Utils.getServerLogRemoteFilename(this));
+        int no_lines = 15;
+        System.out.println("[INFO] Print maximum " + no_lines + " from the server log. "
+                + "Please check the local log for more information! ");
+        BufferedReader br = new BufferedReader(
+                new FileReader(Utils.getServerLogRemoteFilename(this)));
+        String line;
+        while ((line = br.readLine()) != null) {
+            if( --no_lines == 0 )
+                break; 
+            System.out.println(line);
+        }
+    }
+    
+    /**
+     * 
+     * @return
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public int killServer() throws TransportException, IOException { 
+        return SSHCommands.killServerProgram(this);
     }
 }
 

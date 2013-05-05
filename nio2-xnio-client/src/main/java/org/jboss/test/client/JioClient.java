@@ -27,9 +27,11 @@ package org.jboss.test.client;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.management.ManagementFactory;
 import java.net.Inet4Address;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -307,38 +309,56 @@ public class JioClient extends Thread {
 	 * @param args
 	 * @throws Exception
 	 */
-	public static void main(String[] args) throws Exception {
-		
-		if (args.length < 2) {
+	public static void main(String[] args) throws Exception 
+        {
+                /**
+                * TODO: add parameter for choosing individual tests to be run ! 
+                *      - integrate it with JUnit
+                */ 
+            
+                //IMPORTANT FOR TESTING TOOL; DO NOT DELETE!
+                String PID = ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
+                System.out.println("PID: "+PID);
+            
+		if (args.length < 3) {
 			System.err.println("Usage: java " + JioClient.class.getName()
-					+ " hostname port [n] [delay] [nReq]");
+					+ "distributedSynch hostname port [n] [delay] [nReq]");
+                        System.err.println("\tdistributedMode: Set 'yes' if synchronization with other remote clients is desired.");
 			System.err.println("\thostname: The server IP/hostname.");
 			System.err.println("\tport: The server port number.");
+                        System.err.println("\tclientID: The client ID. Used only when distributed mode is turned on.");
 			System.err.println("\tn: The number of threads. (default is 100)");
 			System.err.println("\tdelay: The delay between requests. (default is 1000ms)");
 			System.err.println("\tnReq: The total number of requests. (default is 1000000)");
 			System.exit(1);
 		}
 		
-		String hostname = args[0];
-		int port = Integer.parseInt(args[1]);
+                String distributedMode = args[0];
+                if( !distributedMode.equals("yes") && !distributedMode.equals("no") ) {
+                    throw new IllegalArgumentException(
+                            "Please pass either 'yes' or 'no' for the distributedMode parameter.");
+                }
+                    
+		String hostname = args[1];
+		int port = Integer.parseInt(args[2]);
+                String clientID = args[3];
 		int n = 100, delay = DEFAULT_DELAY, nReq = DEFAULT_NREQ;
-		if (args.length > 2) {
+		if (args.length > 4) {
 			try {
-				n = Integer.parseInt(args[2]);
+				n = Integer.parseInt(args[4]);
 				if (n < 1) {
 					throw new IllegalArgumentException(
 							"Number of threads may not be less than zero");
 				}
 				
-				if (args.length > 3) {
-					delay = Integer.parseInt(args[3]);
+				if (args.length > 5) {
+					delay = Integer.parseInt(args[5]);
 					if (delay < 1) {
 						throw new IllegalArgumentException("Negative value of delay: " + delay);
 					}
 				}
-				if (args.length > 4) {
-					nReq = Integer.valueOf(args[4]);
+				if (args.length > 6) {
+					nReq = Integer.valueOf(args[6]);
 					if (nReq < 1) {
 						throw new IllegalArgumentException(
 								"Negative value for number of requests: " + nReq);
@@ -355,12 +375,13 @@ public class JioClient extends Thread {
 				System.exit(1);
 			}
 		}
-		
 		N_THREADS = n;
 		
 		System.out.println("\n Running test with parameters:");
+                System.out.println("\tDistributed mode: " + distributedMode);
 		System.out.println("\tHostname: " + hostname);
 		System.out.println("\tPort: " + port);
+                System.out.println("\tClientID: " + clientID);
 		System.out.println("\tn: " + n);
 		System.out.println("\tdelay: " + delay);
 		System.out.println("\tnReq: " + nReq);
@@ -383,14 +404,44 @@ public class JioClient extends Thread {
                     System.out.println("Wait the threads to reach same state ...");
                     Thread.sleep(500);
                 }
-                System.out.println("Threads are now on same state, so release all of them!");
-                // the counter is set, so release the threads 
-                synchronized(JioClient.lock) {
-                    JioClient.lock.notifyAll();
+                if( distributedMode.equals("no") ) {
+                    System.out.println("Threads are now at same state, so release them.");
+                    // the counter is set, so release the threads 
+                    synchronized(JioClient.lock) {
+                        JioClient.lock.notifyAll();
+                    }
+                }
+                else if( distributedMode.equals("yes") ) {
+                    // threads are now waiting for a signal to continue
+                    // this signal will be sent after the coordinator of the testing tool 
+                    // will say so; a bit similar to 2PC commit 
+                    
+                    // now, create a local file that would signal to the coordinator that 
+                    // this client reached the point where the threads are synched
+                    // IMPORTANT: please be sure that the testing tool uses the same name !!!
+                    String synch_threads_filename = clientID+"-threads-are-synched";
+                    new File(synch_threads_filename).createNewFile();
+
+                    // now, we wait until the coordinator creates another file
+                    String read_to_start_filename = clientID+"-start-sending-requests";
+                    while( ! new File(read_to_start_filename).exists() ) {
+                        Thread.sleep(50);
+                    }
+                    
+                    // now it's the time to signal the threads to send requests
+                    // release the locked threads
+                    synchronized(JioClient.lock) {
+                        JioClient.lock.notifyAll();
+                    }
                 }
 		
+                // join the threads
 		for (int i = 0; i < clients.length; i++) {
 			clients[i].join();
 		}
+                
+                // as the threads are finished, signal it again with a new empty file
+                String ready_filename = clientID+"-finished";
+                new File(ready_filename).createNewFile();
 	}
 }

@@ -35,6 +35,7 @@ public class MachineManager
     private MachineConnectivityThread cct;
     private WriteStatusThread wst;
     private CheckMessagesThread cmt;
+    private CheckRunningPIDsThread crpt;
     
     // it regulary checks if the machines are still reachable
     protected class MachineConnectivityThread extends Thread 
@@ -52,37 +53,41 @@ public class MachineManager
             this.finish = finish;
         }
         
-        /*
-         * regulary check the connection status and update a flag accordingly
-         */
+        // regulary check the connection status and update a flag accordingly
         public void run() {
+            boolean server_up = false;
             while( !finish ) {
                 // check server connection
                 try {
                     server.checkSSHConnection();
-                    server.setStatus(Machine.Status.OK);
+                    server.setStatusConnection(Machine.Status.OK);
+                    server_up = true;
                 } catch (SSHConnectionException ex) {
-                    server.setStatus(Machine.Status.SSH_CONN_PROBLEMS);
+                    server.setStatusConnection(Machine.Status.SSH_CONN_PROBLEMS);
                     LOGGER.log(Level.SEVERE, "Connectivity problems with the "
                             + "server ("+server.getIpAddress()+"). Check logs. "
                             + "Retry in "+delay+"ms.", 
                             ex);
+                    server_up = false;
                 }
 
-                // now check client connectivity 
-                for(Iterator it=clients.iterator(); it.hasNext(); ) {
-                    Client c = (Client)it.next();
+                if( server_up ) { 
+                    // now check client connectivity only if the server is up
+                    for(Iterator it=clients.iterator(); it.hasNext(); ) {
+                        Client c = (Client)it.next();
 
-                    try {
-                       c.checkSSHConnection();
-                       c.setStatus(Machine.Status.OK);
-                    } catch (SSHConnectionException ex) {         
-                        c.setStatus(Machine.Status.SSH_CONN_PROBLEMS);
-                        LOGGER.log(Level.SEVERE, "Connectivity problems with the client "
-                                +c.getIpAddress()+"). Check logs. "
-                                + "Retry in "+delay+"ms.", ex);
+                        try {
+                           c.checkSSHConnection();
+                           c.setStatusConnection(Machine.Status.OK);
+                        } catch (SSHConnectionException ex) {         
+                            c.setStatusConnection(Machine.Status.SSH_CONN_PROBLEMS);
+                            LOGGER.log(Level.SEVERE, "Connectivity problems with the client "
+                                    +c.getIpAddress()+"). Check logs. "
+                                    + "Retry in "+delay+"ms.", ex);
+                        }
                     }
                 }
+                
                 try {
                     // now sleep a bit until next check
                     Thread.sleep(delay);
@@ -93,7 +98,7 @@ public class MachineManager
         }
     }
       
-    // it regulary write to a log file the status of the running machines
+    // it regulary writes to a log file the status of the running machines
     protected class WriteStatusThread extends Thread 
     {
         // sleep this time between two consecutive checks
@@ -121,15 +126,13 @@ public class MachineManager
             this.finish = finish;
         }
         
-        /*
-         * regulary check the connection status and update a flag accordingly
-         */
+        //regulary write the status on an output file
+        @Override
         public void run() {
-            Date date = new Date();
             while( !finish ) {
-                StringBuffer sb = new StringBuffer();
-                sb.append("\nConnectivity status @ ");
-                sb.append(dateFormat.format(date)+"\n");
+                StringBuilder sb = new StringBuilder();
+                sb.append("\nMachine status @ ");
+                sb.append(dateFormat.format(new Date())+"\n");
                 // write server status 
                 sb.append("\tServer: \n\t\t");
                 sb.append(server.getStatusMessage());
@@ -146,7 +149,8 @@ public class MachineManager
                     // write to file 
                     fis.write(sb.toString().getBytes());
                 } catch (IOException ex) {
-                    ex.printStackTrace();
+                    LOGGER.log(Level.SEVERE, "Exception while writing status to "
+                            + "output file.", ex);
                 }
                 
                 try {
@@ -159,7 +163,7 @@ public class MachineManager
         }
     }
     
-    // it regulary check remotly for messages (e.g. if the clients are ready to 
+    // it regulary checks remotely for messages (e.g. if the clients are ready to 
     // start requests or if they are finished )
     protected class CheckMessagesThread extends Thread 
     {
@@ -181,21 +185,33 @@ public class MachineManager
          * regulary check the status of remote clients and set it accordingly to 
          * out local objects
          */
+        @Override
         public void run() {
             int r;
             while( !finish ) {
                 try {
                     for(Iterator it=clients.iterator(); it.hasNext(); ) {
                         Client c = (Client)it.next();
+                        // check if the remote client is done with the requests
+                        r = SSHCommands.testRemoteFileExists(c, Utils.getClientRemoteDoneFilename(c));
+                        if( r == 0 ) {
+                            c.setStatusSynch(Status.DONE);
+                            continue;
+                        }
+                        // if not, test if the cleint is still sending requests 
+                        r = SSHCommands.testRemoteFileExists(c, Utils.getClientRemoteStartRequestsFilename(c));
+                        if( r == 0 ) {
+                            c.setStatusSynch(Status.RUNNING_REQUESTS);
+                            continue;
+                        }
+                        // if not, check if the client has its threads synchronized
                         r = SSHCommands.testRemoteFileExists(c, Utils.getClientRemoteSynchThreadsFilename(c));
-                        if( r == 0 ) 
-                            c.setStatus(Status.SYNCH_THREADS);
-                        r = SSHCommands.testRemoteFileExists(c, Utils.getClientRemoteStartRequestsFilename(c));
-                        if( r == 0 ) 
-                            c.setStatus(Status.RUNNING_REQUESTS);
-                        r = SSHCommands.testRemoteFileExists(c, Utils.getClientRemoteStartRequestsFilename(c));
-                        if( r == 0 ) 
-                            c.setStatus(Status.FINISHED);
+                        if( r == 0 ) {
+                            c.setStatusSynch(Status.SYNCH_THREADS);
+                            continue;
+                        }
+                        // if not, then no info yet about client synch
+                        c.setStatusSynch(Status.NOT_INIT);
                     }
                 } catch (TransportException ex) {
                     ex.printStackTrace();
@@ -212,6 +228,73 @@ public class MachineManager
         }
     }
     
+    // it regulary checks if server and client PIDs are still running
+    // and it changes the status accordingly 
+    protected class CheckRunningPIDsThread extends Thread 
+    {
+        // sleep this time between two consecutive checks
+        private int delay;
+        private boolean finish;
+        private FileOutputStream fis;
+        
+        public CheckRunningPIDsThread(int delay) {
+            this.delay = delay;
+            this.finish = false;
+        }
+        
+        public void setFinished(boolean finish) {
+            this.finish = finish;
+        }
+        
+        /*
+         * regulary check the status of remote clients and set it accordingly to 
+         * out local objects
+         */
+        @Override
+        public void run() {
+            int r;
+            while( !finish ) {
+                try {
+                    // check server
+                    if( server.getPID() != 0 ) {
+                        r = SSHCommands.checkIfRemotePIDIsRunning(server, 
+                                server.getPID());
+                        if( r == 0 )
+                            server.setStatusProcess(Status.PID_RUNNING);
+                        else
+                            server.setStatusProcess(Status.PID_NOT_RUNNING);
+                    }
+                    else
+                        server.setStatusProcess(Status.NOT_INIT);
+                    
+                    // check clients 
+                    for(Iterator it=clients.iterator(); it.hasNext(); ) {
+                        Client c = (Client)it.next();
+                        // check only if the program has been started and the PID gathered
+                        if( c.getPID() != 0 ) {
+                            r = SSHCommands.checkIfRemotePIDIsRunning(c, c.getPID());
+                            if( r == 0 )
+                                c.setStatusProcess(Status.PID_RUNNING);
+                            else
+                                c.setStatusProcess(Status.PID_NOT_RUNNING);
+                        }
+                        else 
+                            c.setStatusProcess(Status.NOT_INIT);
+                    }
+                } catch (TransportException ex) {
+                    ex.printStackTrace();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+                try {
+                    // now sleep a bit 
+                    Thread.sleep(delay);
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+    }
     
     public MachineManager() {
         this.clients = new ArrayList<Client>();
@@ -219,6 +302,7 @@ public class MachineManager
         this.cct = new MachineConnectivityThread(Utils.DELAY_CHECK_CONN_MS);
         this.wst = new WriteStatusThread(Utils.DELAY_CHECK_CONN_MS, Utils.STATUS_FILENAME);
         this.cmt = new CheckMessagesThread(Utils.DELAY_CHECK_CONN_MS);
+        this.crpt = new CheckRunningPIDsThread(Utils.DELAY_CHECK_CONN_MS);
     }
     
      /**
@@ -284,6 +368,7 @@ public class MachineManager
         }
         
         // get server info 
+        String serverDataFolder = config.getString("server.dataFolder");
         String serverSSHIpPort = config.getString("server.sshIpPort");
         String serverSSHUsername = config.getString("server.sshUsername");
         String serverSSHPassword = config.getString("server.sshPassword");
@@ -319,6 +404,7 @@ public class MachineManager
             LOGGER.severe(ex.getMessage());
             throw new ConfigurationException(ex.getMessage());
         }
+        this.server.setDataFolderPath(serverDataFolder);
         this.server.setServerHttpPort(Integer.valueOf(st.nextToken()));
         
         // get clients program filename 
@@ -457,13 +543,13 @@ public class MachineManager
             // test the remote file exists
             int r = SSHCommands.testRemoteFileExists(c, Utils.getClientProgramRemoteFilename(c));
             if( r == 0 )
-                System.out.println("REMOTE FILE EXISTS (after uploading)");
+                System.out.println("[INFO] Remote file successfuly uploaded on client " + 
+                        c.getIpAddress() + ".");
             else 
-                System.out.println("REMOTE FILE DOES NOT EXIST (after uploading) exit status:" + r);
-            
+                System.out.println("[INFO] Remote file could not be uploaded on client " + 
+                        c.getIpAddress() + "." + " Exit code: " + r);
         }
     }
-    
     
     /**
      * Upload the program to the clients
@@ -475,62 +561,174 @@ public class MachineManager
         // test the remote file exists
         int r = SSHCommands.testRemoteFileExists(server, Utils.getServerProgramRemoteFilename(server));
         if( r == 0 )
-            System.out.println("REMOTE FILE EXISTS (after uploading)");
+            System.out.println("[INFO] Remote file successfuly uploaded on server " + 
+                        server.getIpAddress() + ".");
         else 
-            System.out.println("REMOTE FILE DOES NOT EXIST (after uploading) exit status:" + r);
+            System.out.println("[INFO] Remote file could not be uploaded on server " + 
+                        server.getIpAddress() + "." + " Error code: " + r);
+        
+        // make remote dir 'data' to copy all the files 
+        SSHCommands.createRemoteFolder(server, "data/");
+        
+        String files;
+        File folder = new File(server.getDataFolderPath());
+        File[] listOfFiles = folder.listFiles();  
+        for (int i = 0; i < listOfFiles.length; i++) {
+            if (listOfFiles[i].isFile()) {
+                files = listOfFiles[i].getName();
+                // and now upload the data folder as well 
+                SSHCommands.uploadRemoteFile(server, server.getDataFolderPath()+"/"+files, 
+                        "data/"+files);
+            }
+        }
     }
     
     /**
      * 
-     * @return true if all statuses are Status.OK
+     * @return true if all connectivity statuses are OK
      */
-    public boolean allAreOk() {
-        if( server.getStatus() != Status.OK ) 
+    public boolean allAreConnectionsOK() {
+        if( server.getStatusConnection() != Status.OK ) {
+            System.err.println("[ERROR] Server has network connection problem.");
             return false;
+        }
         for(Iterator it=clients.iterator(); it.hasNext(); ) {
             Client c = (Client)it.next();
-            if( c.getStatus() != Status.OK ) 
+            if( c.getStatusConnection() != Status.OK ) {
+                System.err.println("[ERROR] Client "+c.getIpAddress()
+                        +" has network connection problem.");
                 return false;
+            }
         }
        return true;
     }
     
     /**
      * 
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public void startServer() throws TransportException, IOException { 
+        server.runServerRemotely();
+    }
+    
+    /**
+     * 
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public void startAllClients() throws TransportException, IOException { 
+        for(Iterator it=clients.iterator(); it.hasNext(); ) { 
+            Client c = (Client)it.next();
+            c.runClientRemotely(this.server);
+        }
+    }
+    
+    //TODO
+    public void getAllLogFiles() { 
+        
+    }
+    
+    /**
+     * Start only the connectivity thread firstly.
+     */
+    public void startConnectivityThread() {
+         this.cct.start();
+    }
+    
+    /**
+     * 
      * Just run the status threads. 
      */
-    public void startStatusThreads() {
-         try {
-             this.cct.start();
-             Thread.sleep(200);
+    public void startOtherThreads() {
+        try {
              this.wst.start();
              Thread.sleep(200);
              this.cmt.start();
+             Thread.sleep(200);
+             this.crpt.start();
              Thread.sleep(400);
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
     }
     
+    /**
+     * 
+     * @return  true if all clients are synchronized
+     */
+    public boolean checkClientsSynch() { 
+        //check every client synch status
+        for(Iterator it=clients.iterator(); it.hasNext(); ) { 
+            Client c = (Client)it.next();
+            if( c.getStatusSynch() != Status.SYNCH_THREADS ) 
+                return false;
+        }
+        return true;
+    }
+    
+    /**
+     * 
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public void sendClientsMsgToStartRequests() throws TransportException, IOException { 
+        for(Iterator it=clients.iterator(); it.hasNext(); ) { 
+            Client c = (Client)it.next();
+            SSHCommands.createRemoteFile(c, Utils.getClientRemoteStartRequestsFilename(c));
+        }
+    }
+    
+    /**
+     * 
+     * @return  true if all clients finished their tests
+     */
+    public boolean checkTestsCompletion() { 
+        //check every client synch status
+        for(Iterator it=clients.iterator(); it.hasNext(); ) { 
+            Client c = (Client)it.next();
+            if( c.getStatusSynch() != Status.DONE ) 
+                return false;
+        }
+        return true;
+    }
+    
+    /**
+     * Download on local folder all the logs from server and clients.
+     * @throws IOException 
+     */
+    public void downloadAllLogs() throws IOException { 
+        SSHCommands.downloadRemoteFile(server, Utils.getServerLogRemoteFilename(server), 
+                Utils.getServerLocalFilename());
+        System.out.println("[INFO] Server log file " + Utils.getServerLocalFilename() + 
+                " is locally downloaded. Please check it." );
+        int counter=-1;
+        for(Iterator it=clients.iterator(); it.hasNext(); ) { 
+            Client c = (Client)it.next();
+            SSHCommands.downloadRemoteFile(c, Utils.getClientLogRemoteFilename(c), 
+                    Utils.getClientLocalFilename(++counter));
+        }
+    }
     
     /**
      * 
      * Join the status threads;
      */
-    public void joinStatusThreads() {
+    public void joinAllThreads() {
         this.cct.setFinished(true);
         this.wst.setFinished(true);
         this.cmt.setFinished(true);
+        this.crpt.setFinished(true);
         try {
             this.cct.join();
             this.wst.join();
             this.cmt.join();
+            this.crpt.join();
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
     }
 
-    
     /**
      * 
      * @throws TransportException
@@ -541,10 +739,11 @@ public class MachineManager
         for(Iterator it=clients.iterator(); it.hasNext(); ) {
             Client c = (Client)it.next();
             c.deletePreviousRemoteMessages();
+            // also the logs
+            SSHCommands.deleteRemoteFile(c, "log*.data");
         }
     }
     
-
     /**
      * Print information about server and all clients.
      * 

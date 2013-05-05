@@ -19,14 +19,39 @@ public class Machine
             Machine.class.getName());
     
     public enum Status {
-        SSH_CONN_PROBLEMS, OK,
-        SYNCH_THREADS, RUNNING_REQUESTS, FINISHED
+        
+        /*CONNECTIVITY STATUSES*/
+        // not yet initialized
+        NOT_INIT,
+        // network and SSH connection is ok
+        OK, 
+        // network or SSH connection has problems
+        SSH_CONN_PROBLEMS,
+        
+        /* PROCESS RUNNING STATUSES*/
+        // either the server or client PID is up and running
+        PID_RUNNING,
+        // either the server or client PID is not running
+        PID_NOT_RUNNING,
+        
+        /* CLIENT SYNCH STATUSES*/
+        // a client machine has synchronized his threads, waiting for coordinator
+        // message to start sending requests
+        SYNCH_THREADS, 
+        // a client machine is currently sending requests to the server
+        RUNNING_REQUESTS, 
+        // a machine has done its job
+        DONE
     }
+    
+    protected Status status_connection;
+    protected Status status_process;
+    protected Status status_synch;
             
     private String UUID;
     private String ipAddress; 
     private int port;
-    protected Status status;
+    private Integer PID;
     
     private String sshUsername;
     private String sshPassword;
@@ -35,8 +60,12 @@ public class Machine
         this.UUID = Utils.generateRandomUUID();
         this.ipAddress = "0.0.0.0"; 
         this.port = 0;
+        this.PID = 0;
         this.sshUsername = new String();
         this.sshPassword = new String();
+        this.status_connection = Status.NOT_INIT;
+        this.status_process = Status.NOT_INIT;
+        this.status_synch = Status.NOT_INIT;
     }
     
     /**
@@ -93,16 +122,64 @@ public class Machine
      *
      * @param status
      */
-    public void setStatus(Status status) { 
-        this.status = status;
+    public void setStatusConnection(Status status) { 
+        this.status_connection = status;
     }
     
     /**
      *
      * @return status
      */
-    public Status getStatus() { 
-        return this.status;
+    public Status getStatusConnection() { 
+        return this.status_connection;
+    }
+    
+    /**
+     *
+     * @param status
+     */
+    public void setStatusProcess(Status status) { 
+        this.status_process = status;
+    }
+    
+    /**
+     *
+     * @return status
+     */
+    public Status getStatusProcess() { 
+        return this.status_process;
+    }
+    
+    /**
+     *
+     * @param status
+     */
+    public void setStatusSynch(Status status) { 
+        this.status_synch = status;
+    }
+    
+    /**
+     *
+     * @return status
+     */
+    public Status getStatusSynch() { 
+        return this.status_synch;
+    }
+    
+    /**
+     * 
+     * @param PID 
+     */
+    public void setPID(Integer PID) { 
+        this.PID = PID;
+    }
+    
+    /**
+     * 
+     * @return 
+     */
+    public Integer getPID() { 
+        return this.PID;
     }
     
     /**
@@ -181,13 +258,36 @@ public class Machine
      * @returns a more comprehensible status message 
      */
     public String getStatusMessage() { 
-        if( status == Status.OK )
-            return "Machine " + this.getIpAddress() + ":" + this.getPort() + " is "
-                    + "up and running.";
-        else if( status == Status.SSH_CONN_PROBLEMS )
-            return "Machine " + this.getIpAddress() + ":" + this.getPort() + " has "
-                    + "SSH connectivity problems.";
-        return "No status known for machine " + this.getIpAddress();
+        StringBuilder sb = new StringBuilder();
+        sb.append("Machine ").append(this.getIpAddress());
+        sb.append(":").append(this.getPort()).append("\n\t\tCONNECTION: ");
+        if( status_connection == Status.OK )
+            sb.append("up and running.");
+        else if( status_connection == Status.SSH_CONN_PROBLEMS )
+            sb.append("SSH connectivity problems.");
+        else 
+            sb.append("no connection status known for machine yet.");
+        
+        sb.append("\n\t\tPROGRAM STATUS: ");
+        if( status_process == Status.PID_RUNNING ) 
+            sb.append("running with PID " + this.PID);
+        else if ( status_process == Status.PID_NOT_RUNNING ) 
+            sb.append("not running yet.");
+        else
+            sb.append("no info available yet.");
+        
+        if( this instanceof Server)
+            return sb.toString();
+        
+        sb.append("\n\t\tSYNCH STATUS: ");
+        if( status_synch == Status.SYNCH_THREADS ) 
+            sb.append("threads are synchronized.");
+        else if( status_synch == Status.RUNNING_REQUESTS ) 
+            sb.append("clients are synchronized; sending requests ...");
+        else 
+            sb.append("no info available yet.");
+        
+        return sb.toString();
     }
 
     /**

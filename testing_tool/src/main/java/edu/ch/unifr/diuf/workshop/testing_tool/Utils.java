@@ -11,7 +11,7 @@ public class Utils
 {   
     public static final String PROPERTIES_FILENAME = "server_clients.properties";
     
-    public static final Integer DELAY_CHECK_CONN_MS = 2000;
+    public static final Integer DELAY_CHECK_CONN_MS = 4000;
     public static final String STATUS_FILENAME = "status.log";
     
     // these 2 must be set during the parsing of the properties file
@@ -27,9 +27,6 @@ public class Utils
     public static final String CLIENT_REMOTE_FILENAME_SUFFIX_THREADS_SYNCH = "-threads-are-synched";
     public static final String CLIENT_REMOTE_FILENAME_SUFFIX_START_SENDING_REQUESTS = "-start-sending-requests";
     public static final String CLIENT_REMOTE_FILENAME_SUFFIX_FINISHED = "-finished";
-    
-    // when a client creates this file it means it has reached the point where the threads are synch 
-    public static final String LOCAL_SYNCH_CLIENT_REMOTE_FILENAME = "threads_are_synched";
     
     public static boolean validateIpAddress(String ipAddress) {
         final Pattern IP_PATTERN = Pattern.compile(
@@ -74,12 +71,20 @@ public class Utils
         return Utils.SERVER_PROGRAM_REMOTE_FILENAME;
     }
     
-    public static String getClientLogRemoteFilename(Client c) {
+    public static String getClientLogRemoteFilename(Machine c) {
         return "log-"+c.getUUID()+".data";
     }
     
-    public static String getServerLogRemoteFilename(Server s) { 
+    public static String getClientLocalFilename(int no_c) {
+        return "log-client"+no_c+".data";
+    }
+    
+    public static String getServerLogRemoteFilename(Machine s) { 
         return "log-"+s.getIpAddress()+"-"+s.getPort()+".data";
+    }
+    
+    public static String getServerLocalFilename() { 
+        return  "log-server.data";
     }
     
     public static String getClientRemoteSynchThreadsFilename(Client c) {

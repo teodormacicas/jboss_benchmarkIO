@@ -86,6 +86,7 @@ public abstract class NioServer extends AbstractServer {
 			}
 		} catch (Throwable th) {
 			th.printStackTrace();
+                        System.exit(2);
 		}
 
 	}
