@@ -1,6 +1,5 @@
 #target folders
-nio2-xnio3-netty-servers/target/
-nio2-xnio-client/target/
-nio2-client/target/
-testing_tool/target/
+target/
+.DS_Store
+.idea/
 
