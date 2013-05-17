@@ -36,7 +36,8 @@ public class MachineManager
     private WriteStatusThread wst;
     private CheckMessagesThread cmt;
     private CheckRunningPIDsThread crpt;
-    
+    public static int testNum = 0;
+
     // it regulary checks if the machines are still reachable
     protected class MachineConnectivityThread extends Thread 
     {
@@ -325,6 +326,10 @@ public class MachineManager
         if( no < 0 || no > clients.size() ) 
             return null;
         return clients.get(no);
+    }
+
+    public int getClientsNum() {
+        return clients.size();
     }
     
      /**
@@ -698,16 +703,17 @@ public class MachineManager
      * @throws IOException 
      */
     public void downloadAllLogs() throws IOException { 
-        SSHCommands.downloadRemoteFile(server, Utils.getServerLogRemoteFilename(server), 
-                Utils.getServerLocalFilename());
-        System.out.println("[INFO] Server log file " + Utils.getServerLocalFilename() + 
+        SSHCommands.downloadRemoteFile(server, Utils.getServerLogRemoteFilename(server),
+                Utils.getServerLocalFilename(testNum));
+        System.out.println("[INFO] Server log file " + Utils.getServerLocalFilename(testNum) +
                 " is locally downloaded. Please check it." );
         int counter=-1;
         for(Iterator it=clients.iterator(); it.hasNext(); ) { 
             Client c = (Client)it.next();
-            SSHCommands.downloadRemoteFile(c, Utils.getClientLogRemoteFilename(c), 
-                    Utils.getClientLocalFilename(++counter));
+            SSHCommands.downloadRemoteFile(c, Utils.getClientLogRemoteFilename(c),
+                    Utils.getClientLocalFilename(++counter, testNum));
         }
+        testNum++;
     }
     
     /**
@@ -780,5 +786,16 @@ public class MachineManager
         }
         sb.append("\n");
         return sb.toString();
+    }
+
+    /**
+     * Initialize new working threads to be able to reuse Machine Manager
+     * **/
+
+    public void updateWorkingThreads() {
+        this.cct = new MachineConnectivityThread(Utils.DELAY_CHECK_CONN_MS);
+        this.wst = new WriteStatusThread(Utils.DELAY_CHECK_CONN_MS, Utils.STATUS_FILENAME);
+        this.cmt = new CheckMessagesThread(Utils.DELAY_CHECK_CONN_MS);
+        this.crpt = new CheckRunningPIDsThread(Utils.DELAY_CHECK_CONN_MS);
     }
 }

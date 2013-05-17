@@ -1,9 +1,6 @@
 package edu.ch.unifr.diuf.workshop.testing_tool;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -140,7 +137,7 @@ public class Server extends Machine
      * @throws IOException 
      */
     private void getServerLogAndPrintIt() throws IOException { 
-        SSHCommands.downloadRemoteFile(this, Utils.getServerLogRemoteFilename(this), 
+        SSHCommands.downloadRemoteFile(this, Utils.getServerLogRemoteFilename(this),
                 Utils.getServerLogRemoteFilename(this));
         int no_lines = 15;
         System.out.println("[INFO] Print maximum " + no_lines + " from the server log. "

@@ -27,6 +27,8 @@ public class Utils
     public static final String CLIENT_REMOTE_FILENAME_SUFFIX_THREADS_SYNCH = "-threads-are-synched";
     public static final String CLIENT_REMOTE_FILENAME_SUFFIX_START_SENDING_REQUESTS = "-start-sending-requests";
     public static final String CLIENT_REMOTE_FILENAME_SUFFIX_FINISHED = "-finished";
+
+    private static int TEST_NUM = 0;
     
     public static boolean validateIpAddress(String ipAddress) {
         final Pattern IP_PATTERN = Pattern.compile(
@@ -75,16 +77,16 @@ public class Utils
         return "log-"+c.getUUID()+".data";
     }
     
-    public static String getClientLocalFilename(int no_c) {
-        return "log-client"+no_c+".data";
+    public static String getClientLocalFilename(int no_c, int testNum) {
+        return "log-client"+no_c+ "-" + testNum + ".data";
     }
     
-    public static String getServerLogRemoteFilename(Machine s) { 
+    public static String getServerLogRemoteFilename(Machine s) {
         return "log-"+s.getIpAddress()+"-"+s.getPort()+".data";
     }
     
-    public static String getServerLocalFilename() { 
-        return  "log-server.data";
+    public static String getServerLocalFilename(int testNum) {
+        return  "log-server" + testNum + ".data";
     }
     
     public static String getClientRemoteSynchThreadsFilename(Client c) {

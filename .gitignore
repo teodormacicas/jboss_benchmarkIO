@@ -1,6 +1,11 @@
 #target folders
 target/
+#Mac OS
 .DS_Store
+#Intelij IDEA
 .idea/
 *.iml
+#log files
+*.data
+*.log
 

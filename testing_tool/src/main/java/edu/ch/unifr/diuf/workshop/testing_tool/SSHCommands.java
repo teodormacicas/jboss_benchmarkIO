@@ -6,8 +6,7 @@ import net.schmizz.sshj.connection.channel.direct.Session.Command;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.StringTokenizer;
-import net.schmizz.sshj.common.IOUtils;
+
 import net.schmizz.sshj.transport.TransportException;
 
 /** This examples demonstrates how a remote command can be executed. */

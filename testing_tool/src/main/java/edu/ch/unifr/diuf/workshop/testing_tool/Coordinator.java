@@ -1,11 +1,15 @@
 package edu.ch.unifr.diuf.workshop.testing_tool;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import net.schmizz.sshj.transport.TransportException;
 import org.apache.commons.configuration.ConfigurationException;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This object is supposed to control everything it is running.
@@ -78,61 +82,17 @@ public class Coordinator
             LOGGER.log(Level.SEVERE, "[EXCEPTION] catched while checking clients "
                     + "network connection to the server.", ex);
         }
-        
-        
-        System.out.println("[INFO] Deleting any data from previous run ...");
-        // delete from each client the files that might have been used before for 
-        // sending different messages
-        try {
-            mm.deleteClientPreviouslyMessages();
-        } catch (TransportException ex) {
-            LOGGER.log(Level.SEVERE, "[EXCEPTION] raised while deleting old messages "
-                    + "files from clients.", ex);
-            System.exit(11);
-        } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "[EXCEPTION] raised while deleting old messages "
-                    + "files from clients.", ex);
-            System.exit(12);
-        }
-        System.out.println("[INFO] Starting the threads for checking connectivity and status ...");
-        
+
         // delete also local .data files
         try {
             try {
-                Runtime.getRuntime().exec("/bin/bash -c ls rm log*.data").waitFor();
+                Runtime.getRuntime().exec("/bin/bash rm log*.data").waitFor();
             } catch (IOException ex) {
                 Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
             }
         } catch (InterruptedException e) {}
-        
-        
-        // now start the connectivity and status threads       
-        mm.startConnectivityThread();
-        
-        System.out.println("[INFO] Checking if all machines are in a runnable state ...");
-        // check if all are ok ... 
-        try {
-            // sleep a bit before checking, to allow some time for the coordinator 
-            // to contact each client
-            Thread.sleep(2000);
-            int retries = 10;
-            while( ! mm.allAreConnectionsOK() && retries > 0 ) {
-                --retries;
-                LOGGER.info(" There are some machines that have either ssh problems "
-                    + "or just connectivity problems. Wait and retry (left "
-                    + "#retries: " + retries + ").");
-                Thread.sleep(10000);
-            }   
-            System.out.println("[INFO] ALL machines checked and they are in a runnable state.");
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-            System.exit(13);
-        }
-        
-        // now start all the other thread as the connectity here should be ok 
-        mm.startOtherThreads();
-        
-    
+
+
         // upload the programs to clients and to the server
         try {
             System.out.println("[INFO] Start uploading the program to clients ...");
@@ -146,17 +106,107 @@ public class Coordinator
                 LOGGER.log(Level.SEVERE, null, ex);
                 System.exit(10);
         }
-        
+
+        List<String> tests = mm.getClientNo(0).getTests();
+        Coordinator coordinator = new Coordinator();
+        for(int i = 0; i < tests.size(); i++) {
+            try {
+                Method method = coordinator.getClass().getDeclaredMethod(tests.get(i), MachineManager.class);
+                method.invoke(coordinator, mm);
+
+                if(i < tests.size() - 1) {
+                    mm.updateWorkingThreads();
+                }
+
+            } catch (NoSuchMethodException|InvocationTargetException|IllegalAccessException e) {
+                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, "Test method invocation error.", e);
+            }
+        }
+
+    }
+
+    public static void defaultTest(MachineManager mm) {
+        System.out.println("[INFO] Run test with config parameters");
+        runClients(mm);
+    }
+
+    public static void delayTest(MachineManager mm) {
+        System.out.println("[INFO] Run tests with different delays");
+        int[] delays = {250, 225, 200, 175, 150, 125, 100};
+        for(int i = 0; i < delays.length; i++) {
+            for(int j = 0; j < mm.getClientsNum(); j++) {
+                mm.getClientNo(j).setDelay(delays[i]);
+            }
+            runClients(mm);
+
+            if(i < delays.length - 1) {
+                mm.updateWorkingThreads();
+            }
+        }
+    }
+
+    private void allTests(MachineManager mm) {
+        System.out.println("[INFO] Run all tests");
+        defaultTest(mm);
+        mm.updateWorkingThreads();
+        delayTest(mm);
+    }
+
+    private static void runClients(MachineManager mm) {
+        System.out.println("[INFO] Deleting any data from previous run ...");
+        // delete from each client the files that might have been used before for
+        // sending different messages
+        try {
+            mm.deleteClientPreviouslyMessages();
+        } catch (TransportException ex) {
+            LOGGER.log(Level.SEVERE, "[EXCEPTION] raised while deleting old messages "
+                    + "files from clients.", ex);
+            System.exit(11);
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, "[EXCEPTION] raised while deleting old messages "
+                    + "files from clients.", ex);
+            System.exit(12);
+        }
+        System.out.println("[INFO] Starting the threads for checking connectivity and status ...");
+
+
+               // now start the connectivity and status threads
+        mm.startConnectivityThread();
+
+        System.out.println("[INFO] Checking if all machines are in a runnable state ...");
+        // check if all are ok ...
+        try {
+            // sleep a bit before checking, to allow some time for the coordinator
+            // to contact each client
+            Thread.sleep(2000);
+            int retries = 10;
+            while( ! mm.allAreConnectionsOK() && retries > 0 ) {
+                --retries;
+                LOGGER.info(" There are some machines that have either ssh problems "
+                    + "or just connectivity problems. Wait and retry (left "
+                    + "#retries: " + retries + ").");
+                Thread.sleep(10000);
+            }
+            System.out.println("[INFO] ALL machines checked and they are in a runnable state.");
+        } catch (InterruptedException ex) {
+            ex.printStackTrace();
+            System.exit(13);
+        }
+
+        // now start all the other thread as the connectity here should be ok
+        mm.startOtherThreads();
+
         System.out.println("[INFO] Start the server ... ");
         try {
-            // run the server remotely 
+            // run the server remotely
             mm.getServer().runServerRemotely();
         } catch (TransportException ex) {
             LOGGER.log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, null, ex);
         }
-        
+
         System.out.println("[INFO] Start the clients ...  ");
         try {
             mm.startAllClients();
@@ -165,7 +215,7 @@ public class Coordinator
         } catch (IOException ex) {
             Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
         // check if all clients are synchronized
         while( true ) {
             try {
@@ -174,15 +224,15 @@ public class Coordinator
                             + "Wait more time ... ");
                     Thread.sleep(3000);
                 }
-                else 
+                else
                     break;
             } catch (InterruptedException ex) {
                 ex.printStackTrace();
-            } 
+            }
         }
         System.out.println("[INFO] Clients' threads are synched. Now start the requests.");
-        
-        
+
+
         try {
             mm.sendClientsMsgToStartRequests();
         } catch (TransportException ex) {
@@ -191,7 +241,7 @@ public class Coordinator
             Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
         }
         System.out.println("[INFO] All clients are now sending requests to the server.");
-        
+
         // check if tests are completed
         while( true ) {
             try {
@@ -199,15 +249,15 @@ public class Coordinator
                     System.out.println("[INFO] Client tests are not done yet ... wait more.");
                     Thread.sleep(5000);
                 }
-                else 
+                else
                     break;
             } catch (InterruptedException ex) {
                 ex.printStackTrace();
-            } 
+            }
         }
         System.out.println("[INFO] Client tests are done.");
-        
-        System.out.println("[INFO] Now locally download the logs from the clients.");
+
+                System.out.println("[INFO] Now locally download the logs from the clients.");
         try {
             // get all logs to the server
             mm.downloadAllLogs();
@@ -216,8 +266,8 @@ public class Coordinator
         }
         System.out.println("[INFO] All the logs are downloaded. For further information "
                 + "please check them.");
-        
-        
+
+
         System.out.println("[INFO] Kill the server ... ");
         try {
             mm.getServer().killServer();
@@ -228,13 +278,13 @@ public class Coordinator
         } catch (IOException ex) {
             Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
         // maybe delete here the client & server files ...
-        // kill 
-        // maybe get all logs locally 
-        
-        
+        // kill
+        // maybe get all logs locally
+
+
         // now join the helper threads
-        mm.joinAllThreads(); 
-    }    
+       mm.joinAllThreads();
+    }
 }
