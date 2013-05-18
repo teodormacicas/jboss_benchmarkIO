@@ -107,6 +107,7 @@ public class Coordinator
                 System.exit(10);
         }
 
+        //get tests to run
         List<String> tests = mm.getClientNo(0).getTests();
         Coordinator coordinator = new Coordinator();
         for(int i = 0; i < tests.size(); i++) {
@@ -119,19 +120,18 @@ public class Coordinator
                 }
 
             } catch (NoSuchMethodException|InvocationTargetException|IllegalAccessException e) {
-                e.printStackTrace();
                 LOGGER.log(Level.SEVERE, "Test method invocation error.", e);
             }
         }
 
     }
 
-    public static void defaultTest(MachineManager mm) {
+    private void defaultTest(MachineManager mm) {
         System.out.println("[INFO] Run test with config parameters");
         runClients(mm);
     }
 
-    public static void delayTest(MachineManager mm) {
+    private void delayTest(MachineManager mm) {
         System.out.println("[INFO] Run tests with different delays");
         int[] delays = {250, 225, 200, 175, 150, 125, 100};
         for(int i = 0; i < delays.length; i++) {
@@ -142,6 +142,26 @@ public class Coordinator
 
             if(i < delays.length - 1) {
                 mm.updateWorkingThreads();
+            }
+        }
+    }
+
+    private void asyncServersTest(MachineManager mm) {
+        System.out.println("[INFO] Run tests with different server types in async mode");
+        String[] servers = {"xnio3", "nio2", "netty"};
+        String mode = "async";
+        for(int i = 0; i < servers.length; i++) {
+            try {
+                mm.getServer().setServerType(servers[i]);
+                mm.getServer().setServerMode(mode);
+
+                System.out.println("[INFO] Run tests with " + servers[i] + " server type");
+                runClients(mm);
+                if (i < servers.length - 1) {
+                    mm.updateWorkingThreads();
+                }
+            } catch (WrongServerTypeException|WrongServerModeException e) {
+                LOGGER.log(Level.SEVERE, "Wrong server type ot mode name.", e);
             }
         }
     }
