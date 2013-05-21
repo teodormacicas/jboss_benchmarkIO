@@ -29,17 +29,9 @@ public class Coordinator
             mm.parsePropertiesFile();
             
         }
-        catch( WrongIpAddressException ex ) {
+        catch( WrongIpAddressException|WrongPortNumberException|ClientNotProperlyInitException ex ) {
             LOGGER.log(Level.SEVERE, "[EXCEPTION] Setting up a machine.", ex);
             System.exit(1);
-        }
-        catch( WrongPortNumberException ex2 ) {
-            LOGGER.log(Level.SEVERE, "[EXCEPTION] Setting up a machine.", ex2);
-            System.exit(2);
-        }
-        catch( ClientNotProperlyInitException ex3 ) {
-            LOGGER.log(Level.SEVERE, "[EXCEPTION] Setting up a machine.", ex3);
-            System.exit(3);
         }
         catch( ConfigurationException ex4 ) { 
             LOGGER.log(Level.SEVERE, "[EXCEPTION] Reading the properties file.", ex4);
@@ -78,20 +70,20 @@ public class Coordinator
         } catch (TransportException ex) {
             LOGGER.log(Level.SEVERE, "[EXCEPTION] catched while checking clients "
                     + "network connection to the server.", ex);
+            System.exit(8);
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, "[EXCEPTION] catched while checking clients "
                     + "network connection to the server.", ex);
+            System.exit(8);
         }
+        System.out.println("[INFO] All clients have network connection with server.");
 
         // delete also local .data files
         try {
-            try {
-                Runtime.getRuntime().exec("/bin/bash rm log*.data").waitFor();
-            } catch (IOException ex) {
-                Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        } catch (InterruptedException e) {}
-
+            Runtime.getRuntime().exec("/bin/bash rm log*.data").waitFor();
+        } catch (IOException|InterruptedException ex) {
+            Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
         // upload the programs to clients and to the server
         try {
@@ -121,6 +113,7 @@ public class Coordinator
 
             } catch (NoSuchMethodException|InvocationTargetException|IllegalAccessException e) {
                 LOGGER.log(Level.SEVERE, "Test method invocation error.", e);
+                System.exit(11);
             }
         }
 
@@ -173,6 +166,7 @@ public class Coordinator
         delayTest(mm);
     }
 
+    // synchronize, start program, fetch the logs
     private static void runClients(MachineManager mm) {
         System.out.println("[INFO] Deleting any data from previous run ...");
         // delete from each client the files that might have been used before for
@@ -190,8 +184,7 @@ public class Coordinator
         }
         System.out.println("[INFO] Starting the threads for checking connectivity and status ...");
 
-
-               // now start the connectivity and status threads
+        // now start the connectivity and status threads
         mm.startConnectivityThread();
 
         System.out.println("[INFO] Checking if all machines are in a runnable state ...");
@@ -210,11 +203,12 @@ public class Coordinator
             }
             System.out.println("[INFO] ALL machines checked and they are in a runnable state.");
         } catch (InterruptedException ex) {
-            ex.printStackTrace();
+            LOGGER.log(Level.SEVERE, "[EXCEPTION] raised while checking if clients "
+                    + " connections are OK.", ex);
             System.exit(13);
         }
 
-        // now start all the other thread as the connectity here should be ok
+        // now start all the other thread as the connectity at this point should be ok
         mm.startOtherThreads();
 
         System.out.println("[INFO] Start the server ... ");
@@ -223,17 +217,21 @@ public class Coordinator
             mm.getServer().runServerRemotely();
         } catch (TransportException ex) {
             LOGGER.log(Level.SEVERE, null, ex);
+            System.exit(14);
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, null, ex);
+            System.exit(14);
         }
 
         System.out.println("[INFO] Start the clients ...  ");
         try {
             mm.startAllClients();
         } catch (TransportException ex) {
-            Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
+            LOGGER.log(Level.SEVERE, null, ex);
+            System.exit(15);
         } catch (IOException ex) {
-            Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
+            LOGGER.log(Level.SEVERE, null, ex);
+            System.exit(15);
         }
 
         // check if all clients are synchronized
@@ -247,18 +245,21 @@ public class Coordinator
                 else
                     break;
             } catch (InterruptedException ex) {
-                ex.printStackTrace();
+                LOGGER.log(Level.SEVERE, null, ex);
+                System.exit(15);
             }
         }
         System.out.println("[INFO] Clients' threads are synched. Now start the requests.");
 
-
+        // send a message to the clients to start sending requests as they are now synchronized
         try {
             mm.sendClientsMsgToStartRequests();
         } catch (TransportException ex) {
-            Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
+            LOGGER.log(Level.SEVERE, null, ex);
+            System.exit(16);
         } catch (IOException ex) {
-            Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
+            LOGGER.log(Level.SEVERE, null, ex);
+            System.exit(16);
         }
         System.out.println("[INFO] All clients are now sending requests to the server.");
 
@@ -272,17 +273,19 @@ public class Coordinator
                 else
                     break;
             } catch (InterruptedException ex) {
-                ex.printStackTrace();
+                LOGGER.log(Level.SEVERE, null, ex);
+                System.exit(17);
             }
         }
         System.out.println("[INFO] Client tests are done.");
 
-                System.out.println("[INFO] Now locally download the logs from the clients.");
+        System.out.println("[INFO] Now locally download the logs from the clients.");
         try {
             // get all logs to the server
             mm.downloadAllLogs();
         } catch (IOException ex) {
             Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(18);
         }
         System.out.println("[INFO] All the logs are downloaded. For further information "
                 + "please check them.");
@@ -299,12 +302,7 @@ public class Coordinator
             Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        // maybe delete here the client & server files ...
-        // kill
-        // maybe get all logs locally
-
-
         // now join the helper threads
-       mm.joinAllThreads();
+        mm.joinAllThreads();
     }
 }

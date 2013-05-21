@@ -643,7 +643,7 @@ public class MachineManager
     
     /**
      * 
-     * Just run the status threads. 
+     * Just run the status, check messages and check PIDs threads. 
      */
     public void startOtherThreads() {
         try {
@@ -790,8 +790,8 @@ public class MachineManager
 
     /**
      * Initialize new working threads to be able to reuse Machine Manager
-     * **/
-
+     * 
+     **/
     public void updateWorkingThreads() {
         this.cct = new MachineConnectivityThread(Utils.DELAY_CHECK_CONN_MS);
         this.wst = new WriteStatusThread(Utils.DELAY_CHECK_CONN_MS, Utils.STATUS_FILENAME);
