@@ -4,8 +4,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import net.schmizz.sshj.transport.TransportException;
 
 /**
@@ -19,6 +17,9 @@ public class Client extends Machine
     private int noThreads; 
     private int delay; //the delay between requests 
     private int noReq; //total number of requests
+    private double restartCond; //percentage of dead clients needed to restart a test
+    private int timeoutSec; // after this vlaue, the client is considered dead
+    private int lastLogAccessSec;
     
     // set here the name of the tests to be run 
     private List<String> tests;
@@ -130,6 +131,38 @@ public class Client extends Machine
     
     /**
      * 
+     * @param sec 
+     */
+    public void setTimeoutSec(int sec) {
+        this.timeoutSec = sec; 
+    }
+    
+    /**
+     * 
+     * @return 
+     */
+    public int getTimeoutSec() { 
+        return this.timeoutSec;
+    }
+    
+    /**
+     * 
+     * @param relativeSec 
+     */
+    public void setLastLogModification(int relativeSec) { 
+        this.lastLogAccessSec = relativeSec;
+    }
+    
+    /**
+     * 
+     * @return 
+     */
+    public int getLastLogModification() { 
+        return this.lastLogAccessSec;
+    }
+    
+    /**
+     * 
      * @param test 
      */
     public void addNewTest(String test) { 
@@ -146,6 +179,17 @@ public class Client extends Machine
     
     /**
      * 
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public int killClient() throws TransportException, IOException { 
+        if( getPID() != 0 )
+            return SSHCommands.killProgram(this);
+        return 1;
+    }
+    
+    /**
+     * 
      * @param serverIpAddress
      * @param serverPort
      * @throws WrongIpAddressException
@@ -155,6 +199,22 @@ public class Client extends Machine
             throws WrongIpAddressException, WrongPortNumberException { 
         this.setServerIpAddress(serverIpAddress);
         this.setServerPort(serverPort);
+    }
+    
+    /**
+     * 
+     * @param threshold 
+     */
+    public void setRestartConditionPropThreadsDead(double threshold) { 
+        this.restartCond = threshold;
+    }
+    
+    /**
+     * 
+     * @return 
+     */
+    public double getRestartConditionPropThreadsDead() { 
+        return this.restartCond;
     }
     
     /**
@@ -214,6 +274,62 @@ public class Client extends Machine
         }
         this.setPID(SSHCommands.getProgramPID(this));
         return 0;
+    }
+    
+    /**
+     * 
+     * @return
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public boolean isProgressing() throws TransportException, IOException { 
+        lastLogAccessSec = SSHCommands.getTimeSinceLastLogModification(this, 
+                Utils.getClientLogRemoteFilename(this));
+        if( lastLogAccessSec > this.timeoutSec ) { 
+            return false;
+        }
+        return true;
+    }
+    
+    /**
+     * 
+     * @returns a more comprehensible status message 
+     */
+    public String getStatusMessage() { 
+        StringBuilder sb = new StringBuilder();
+        sb.append("Client ").append(this.getIpAddress());
+        sb.append(":").append(this.getPort()).append("\n\t\tCONNECTION: ");
+        if( status_connection == Status.OK )
+            sb.append("up and running.");
+        else if( status_connection == Status.SSH_CONN_PROBLEMS )
+            sb.append("SSH connectivity problems.");
+        else 
+            sb.append("no connection status known for machine yet.");
+        
+        sb.append("\n\t\tPROGRAM STATUS: ");
+        if( status_process == Status.PID_RUNNING ) 
+            sb.append("running with PID " + this.getPID());
+        else if ( status_process == Status.PID_NOT_RUNNING ) 
+            sb.append("not running yet.");
+        else
+            sb.append("no info available yet.");
+        
+        sb.append("\n\t\tSYNCH STATUS: ");
+        if( status_synch == Status.SYNCH_THREADS ) 
+            sb.append("threads are synchronized.");
+        else if( status_synch == Status.RUNNING_REQUESTS ) 
+            sb.append("clients are synchronized; sending requests ...");
+        else 
+            sb.append("no info available yet.");
+        
+        sb.append("\n\t\tTESTS: ");
+        sb.append(testsToString());
+        
+        sb.append("\n\t\tFAULT TOLERANCE: ");
+        sb.append(this.getRestartConditionPropThreadsDead()+ " percentage of "
+                + "needed dead clients to restart.");
+        
+        return sb.toString();
     }
 }
 

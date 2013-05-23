@@ -255,43 +255,6 @@ public class Machine
     
     /**
      * 
-     * @returns a more comprehensible status message 
-     */
-    public String getStatusMessage() { 
-        StringBuilder sb = new StringBuilder();
-        sb.append("Machine ").append(this.getIpAddress());
-        sb.append(":").append(this.getPort()).append("\n\t\tCONNECTION: ");
-        if( status_connection == Status.OK )
-            sb.append("up and running.");
-        else if( status_connection == Status.SSH_CONN_PROBLEMS )
-            sb.append("SSH connectivity problems.");
-        else 
-            sb.append("no connection status known for machine yet.");
-        
-        sb.append("\n\t\tPROGRAM STATUS: ");
-        if( status_process == Status.PID_RUNNING ) 
-            sb.append("running with PID " + this.PID);
-        else if ( status_process == Status.PID_NOT_RUNNING ) 
-            sb.append("not running yet.");
-        else
-            sb.append("no info available yet.");
-        
-        if( this instanceof Server)
-            return sb.toString();
-        
-        sb.append("\n\t\tSYNCH STATUS: ");
-        if( status_synch == Status.SYNCH_THREADS ) 
-            sb.append("threads are synchronized.");
-        else if( status_synch == Status.RUNNING_REQUESTS ) 
-            sb.append("clients are synchronized; sending requests ...");
-        else 
-            sb.append("no info available yet.");
-        
-        return sb.toString();
-    }
-
-    /**
-     * 
      * @param localFile
      * @param remoteFile 
      */

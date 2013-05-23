@@ -12,6 +12,10 @@ public class Utils
     public static final String PROPERTIES_FILENAME = "server_clients.properties";
     
     public static final Integer DELAY_CHECK_CONN_MS = 4000;
+    public static final Integer DELAY_WRITE_STATUS_MS = 4000;
+    public static final Integer DELAY_CHECK_MESSAGES = 5000;
+    public static final Integer DELAY_CHECK_RUNNING_PIDS = 5000;
+    public static final Integer DELAY_CHECK_FAULT_MS = 20000;
     public static final String STATUS_FILENAME = "status.log";
     
     // these 2 must be set during the parsing of the properties file
@@ -116,5 +120,18 @@ public class Utils
             return true;
         }
         return false;
+    }
+    
+    /**
+     * Get the method name for a depth in call stack. <br />
+     * Utility function
+     * @param depth depth in the call stack (0 means current method, 1 means call method, ...)
+     * @return method name
+     */ 
+    public static String getMethodName(final int depth) {
+        final StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+        //System. out.println(ste[ste.length-depth].getClassName()+"#"+ste[ste.length-depth].getMethodName());
+        // return ste[ste.length - depth].getMethodName();  //Wrong, fails for depth = 0
+        return ste[ste.length - 1 - depth].getMethodName(); //Thank you Tom Tresansky
     }
 }

@@ -36,6 +36,7 @@ public class MachineManager
     private WriteStatusThread wst;
     private CheckMessagesThread cmt;
     private CheckRunningPIDsThread crpt;
+    private FaultTolerantThread ftt;
     public static int testNum = 0;
 
     // it regulary checks if the machines are still reachable
@@ -297,13 +298,90 @@ public class MachineManager
         }
     }
     
+    // if the failing condition is met, then it interrupts the main thread
+    protected class FaultTolerantThread extends Thread 
+    {
+        // sleep this time between two consecutive checks
+        private int delay;
+        private boolean finish;
+        private Thread runningTestThread;
+        private double failingClients;
+        
+        public FaultTolerantThread(int delay, Thread runningTestThread) {
+            this.delay = delay;
+            this.finish = false;
+            this.runningTestThread = runningTestThread;
+        }
+        
+        public void setFinished(boolean finish) {
+            this.finish = finish;
+        }
+        
+        private boolean failingCondition() throws TransportException, IOException { 
+            int failing_clients=0;
+            failingClients = 0;
+            if( server.status_process == Status.PID_NOT_RUNNING ) 
+                return true;
+            
+            for(Iterator it=clients.iterator(); it.hasNext(); ) {
+                Client c = (Client)it.next();
+                
+                if( (c.status_process == Status.PID_NOT_RUNNING && 
+                    c.status_synch != Status.DONE) ) {
+                    System.out.println("[FAILURE] Client PID NOT RUNNING and status NOT DONE");
+                    failing_clients++;
+                    continue;
+                } 
+                // client running, but lately no data in the log
+                if( c.status_process == Status.PID_RUNNING && ! c.isProgressing() ) {
+                    System.out.println("[FAILURE] Client PID RUNNING, but no progress on the log file. "
+                            + "Last progress it was " + c.getLastLogModification() + " seconds ago ...");
+                    failing_clients++;
+                }
+            }
+            if( failing_clients == 0 ) 
+                return false;
+            failingClients = ((double)failing_clients/clients.size());
+            //System.out.println("Failing clients percentage: " + failingClients);
+            if( failingClients >= 
+                    clients.get(0).getRestartConditionPropThreadsDead() ) {
+                return true;
+            }
+            return false;
+        }
+        
+        /*
+         * regulary check the status of remote clients and interrupt the one 
+         * running the test if the failing condition is met 
+         */
+        @Override
+        public void run() {
+            while( !finish ) {
+                try {
+                    // now sleep a bit 
+                    Thread.sleep(delay);
+                    if( failingCondition() && runningTestThread.isAlive() ) {
+                        // if clients failed, then notify main thread and wait that 
+                        // the server and clients are restarted
+                        System.out.println("[FAILURE] " + (failingClients*100) + "% of the clients "
+                                + "have failed. Therefore, restart the test ...");
+                        runningTestThread.interrupt();
+                        Thread.sleep(5000);
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+    }
+    
     public MachineManager() {
         this.clients = new ArrayList<Client>();
         this.server = null;
         this.cct = new MachineConnectivityThread(Utils.DELAY_CHECK_CONN_MS);
-        this.wst = new WriteStatusThread(Utils.DELAY_CHECK_CONN_MS, Utils.STATUS_FILENAME);
-        this.cmt = new CheckMessagesThread(Utils.DELAY_CHECK_CONN_MS);
-        this.crpt = new CheckRunningPIDsThread(Utils.DELAY_CHECK_CONN_MS);
+        this.wst = new WriteStatusThread(Utils.DELAY_WRITE_STATUS_MS, Utils.STATUS_FILENAME);
+        this.cmt = new CheckMessagesThread(Utils.DELAY_CHECK_MESSAGES);
+        this.crpt = new CheckRunningPIDsThread(Utils.DELAY_CHECK_RUNNING_PIDS);
     }
     
      /**
@@ -378,6 +456,8 @@ public class MachineManager
         String serverSSHUsername = config.getString("server.sshUsername");
         String serverSSHPassword = config.getString("server.sshPassword");
         String serverRunningParams = config.getString("server.runningParams");
+        String serverFaultTolerant = config.getString("server.faultTolerant");
+        String serverRestartAttempts = config.getString("server.restartAttempts");
         StringTokenizer st = new StringTokenizer(serverSSHIpPort, ":");
         if( st.countTokens() != 2 ) { 
             LOGGER.severe("Parsing error of server.sshIpPort. Please pass data "
@@ -411,6 +491,14 @@ public class MachineManager
         }
         this.server.setDataFolderPath(serverDataFolder);
         this.server.setServerHttpPort(Integer.valueOf(st.nextToken()));
+        this.server.setFaultTolerant(serverFaultTolerant.trim());
+        if( Integer.valueOf(serverRestartAttempts) < 0 ) {
+            LOGGER.severe("Parsing error of server.restartAttepmts. Please check the "
+                    + "right format in the properties file and re-run this.");
+            throw new ConfigurationException("Parsing error of server.restartAttempts. "
+                    + "Please check the right format in the properties file and re-run this.");
+        }
+        this.server.setRestartAttempts(Integer.valueOf(serverRestartAttempts));
         
         // get clients program filename 
         Utils.CLIENT_PROGRAM_LOCAL_FILENAME = config.getString("clients.programJarFile").trim();
@@ -426,6 +514,15 @@ public class MachineManager
         List clientsSSHUsername = config.getList("clients.sshUsername");
         List clientsSSHPassword = config.getList("clients.sshPassword");
         List clientsSSHRunningParams = config.getList("clients.runningParams");
+        String clientsRestartCondition = config.getString("clients.restartConditionPropThreadsDead");
+        double clients_rest_cond = Double.valueOf(clientsRestartCondition);
+        if( clients_rest_cond < 0 || clients_rest_cond > 1 ) { 
+            LOGGER.severe("Please give restartConditionPropThreadsDead parameter"
+                    + " as double between 0 and 1 inclusive. ");
+            throw new ConfigurationException("Please give restartConditionPropThreadsDead parameter"
+                    + " as double between 0 and 1 inclusive. ");
+        }
+        String clientsTimeoutSec = config.getString("clients.timeoutSeconds");
         List clientsTests = config.getList("clients.tests");
         
         if( clientsIpPort.size() != clientsSSHUsername.size() || 
@@ -435,7 +532,6 @@ public class MachineManager
                     + "sshRunningParams parameters for each client.");
             throw new ConfigurationException("Please give sshIpPort, sshUsername, sshPassword and "
                     + "sshRunningParams parameters for each client.");
-            
         }
         
         // iterate the list and create the clients
@@ -471,6 +567,8 @@ public class MachineManager
             c.setNoThreads(Integer.valueOf(st.nextToken()));
             c.setDelay(Integer.valueOf(st.nextToken()));
             c.setNoReq(Integer.valueOf(st.nextToken()));
+            c.setRestartConditionPropThreadsDead(clients_rest_cond);
+            c.setTimeoutSec(Integer.valueOf(clientsTimeoutSec));
             // add tests
             for( Iterator it2=clientsTests.iterator(); it2.hasNext(); ) {
                 c.addNewTest((String)it2.next());
@@ -647,10 +745,13 @@ public class MachineManager
      */
     public void startOtherThreads() {
         try {
+             // write status 
              this.wst.start();
              Thread.sleep(200);
+             // check messages 
              this.cmt.start();
              Thread.sleep(200);
+             // check PIDs
              this.crpt.start();
              Thread.sleep(400);
         } catch (InterruptedException ex) {
@@ -670,6 +771,18 @@ public class MachineManager
                 return false;
         }
         return true;
+    }
+    
+    /**
+     * 
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public void killClients() throws TransportException, IOException { 
+        for(Iterator it=clients.iterator(); it.hasNext(); ) { 
+            Client c = (Client)it.next();
+            c.killClient();
+        }
     }
     
     /**
@@ -725,16 +838,27 @@ public class MachineManager
         this.wst.setFinished(true);
         this.cmt.setFinished(true);
         this.crpt.setFinished(true);
+        this.ftt.setFinished(true);
         try {
-            this.cct.join();
-            this.wst.join();
-            this.cmt.join();
-            this.crpt.join();
+            this.cct.join(4000);
+            this.wst.join(4000);
+            this.cmt.join(4000);
+            this.crpt.join(4000);
+            this.ftt.join(4000);
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
     }
 
+    /**
+     * 
+     * @param testThread 
+     */
+    public void startFaultTolerantThread(Thread testThread) { 
+        this.ftt = new FaultTolerantThread(Utils.DELAY_CHECK_FAULT_MS, testThread);
+        this.ftt.start();
+    }
+    
     /**
      * 
      * @throws TransportException
@@ -757,6 +881,7 @@ public class MachineManager
      */
     public String printMachines() { 
         StringBuilder sb = new StringBuilder();
+        
         sb.append("\nServer: "); 
         sb.append("\n\t address: ");
         sb.append(server.getIpAddress()).append(":").append(server.getPort());
@@ -766,6 +891,9 @@ public class MachineManager
         sb.append(server.getServerType()).append(" ");
         sb.append(server.getServerMode()).append(" ");
         sb.append(server.getServerHttpPort());
+        sb.append("\n\t fault tolerance: "); 
+        sb.append(server.getFaultTolerant()).append(" ");
+        sb.append(server.getRestartAttempts()).append("retrials ");
         sb.append("\nClients:");
         
         int counter = -1;
@@ -783,6 +911,9 @@ public class MachineManager
             sb.append(c.getNoThreads() + " " + c.getDelay() + " " + c.getNoReq());
             sb.append("\n\t\t running tests: "); 
             sb.append(c.testsToString());
+            sb.append("\n\t\t fault tolerance: "); 
+            sb.append(c.getRestartConditionPropThreadsDead()).append(" percentage ");
+            sb.append("of needed dead clients to restart test");
         }
         sb.append("\n");
         return sb.toString();

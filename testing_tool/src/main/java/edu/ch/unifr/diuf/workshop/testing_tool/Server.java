@@ -19,6 +19,9 @@ public class Server extends Machine
      private String serverMode; 
      // this is also used by the clients to know where to connect to
      private int serverPort;
+     // if set to 'yes', in case of failure restartAttempts is tried 
+     private String faultTolerant;
+     private int restartAttempts;
     
      public Server(String ipAddress, int port, String sshUsername, String sshPassword) 
             throws WrongIpAddressException, WrongPortNumberException {
@@ -107,6 +110,38 @@ public class Server extends Machine
     }
     
     /**
+     * 
+     * @param faultTolerant 
+     */
+    public void setFaultTolerant(String faultTolerant) { 
+        this.faultTolerant = faultTolerant;
+    }
+    
+    /**
+     * 
+     * @return 
+     */
+    public String getFaultTolerant() { 
+        return this.faultTolerant;
+    }
+    
+    /**
+     * 
+     * @param restartAttempts 
+     */
+    public void setRestartAttempts(int restartAttempts) { 
+        this.restartAttempts = restartAttempts;
+    }
+    
+    /**
+     * 
+     * @return 
+     */
+    public int getRestartAttempts() { 
+        return this.restartAttempts;
+    }
+    
+    /**
       * 
       * @param file 
       */
@@ -154,12 +189,48 @@ public class Server extends Machine
     
     /**
      * 
+     * @returns a more comprehensible status message 
+     */
+    public String getStatusMessage() { 
+        StringBuilder sb = new StringBuilder();
+        sb.append("Server ").append(this.getIpAddress());
+        sb.append(":").append(this.getPort()).append("\n\t\tCONNECTION: ");
+        if( status_connection == Status.OK )
+            sb.append("up and running.");
+        else if( status_connection == Status.SSH_CONN_PROBLEMS )
+            sb.append("SSH connectivity problems.");
+        else 
+            sb.append("no connection status known for machine yet.");
+        
+        sb.append("\n\t\tPROGRAM STATUS: ");
+        if( status_process == Status.PID_RUNNING ) 
+            sb.append("running with PID " + this.getPID());
+        else if ( status_process == Status.PID_NOT_RUNNING ) 
+            sb.append("not running yet.");
+        else
+            sb.append("no info available yet.");
+        
+        sb.append("\n\t\tFAULT TOLERANCE: ");
+        if( getFaultTolerant().equals("yes") ) {
+            sb.append(" yes ");
+            sb.append(getRestartAttempts() + " retrials");
+        }
+        else
+            sb.append(" no ");
+        
+        return sb.toString();
+    }
+    
+    /**
+     * 
      * @return
      * @throws TransportException
      * @throws IOException 
      */
     public int killServer() throws TransportException, IOException { 
-        return SSHCommands.killServerProgram(this);
+        if( getPID() != 0 )
+            return SSHCommands.killProgram(this);
+        return 1;
     }
 }
 

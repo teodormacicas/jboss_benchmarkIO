@@ -155,7 +155,8 @@ public class SSHCommands
      * @throws TransportException
      * @throws IOException 
      */
-    public static int deleteRemoteFile(Machine machine, String remoteFile) throws TransportException, IOException 
+    public static int deleteRemoteFile(Machine machine, String remoteFile) 
+            throws TransportException, IOException 
     {
         SSHClient ssh = new SSHClient();
         ssh.loadKnownHosts(); 
@@ -317,25 +318,25 @@ public class SSHCommands
     
     /**
      * 
-     * @param server
+     * @param machine
      * @return
      * @throws TransportException
      * @throws IOException 
      */
-    public static int killServerProgram(Server server) throws TransportException, IOException 
+    public static int killProgram(Machine machine) throws TransportException, IOException 
     {
         SSHClient ssh = new SSHClient();
         ssh.loadKnownHosts(); 
-        ssh.connect(server.getIpAddress(), server.getPort());   
+        ssh.connect(machine.getIpAddress(), machine.getPort());   
                 
         try {
             // UNFORTUNATELY, authPublicKey could not make it working! :(
-            ssh.authPassword(server.getSSHUsername(), server.getSSHPassword());
+            ssh.authPassword(machine.getSSHUsername(), machine.getSSHPassword());
             final Session session = ssh.startSession();
             try {
                 StringBuilder sb = new StringBuilder();
                 sb.append("kill "); 
-                sb.append(server.getPID());
+                sb.append(machine.getPID());
                 //System.out.println("Run command: " + sb.toString());
                 final Command cmd = session.exec(sb.toString());
                 cmd.join();
@@ -392,6 +393,50 @@ public class SSHCommands
             ssh.disconnect();
         }
     }
+    
+    /**
+     * 
+     * @param machine
+     * @param filename
+     * @return
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public static int getTimeSinceLastLogModification(Machine machine, String filename) throws TransportException, IOException 
+    {
+        SSHClient ssh = new SSHClient();
+        ssh.loadKnownHosts(); 
+        ssh.connect(machine.getIpAddress(), machine.getPort());   
+                
+        try {
+            ssh.authPassword(machine.getSSHUsername(), machine.getSSHPassword());
+            final Session session = ssh.startSession();
+            try {
+                // e.g.: echo $((`stat -c "%Y" log-31cc4e50-1915-4a2d-ad45-02a0e8f79282.data`-`date +%s`))
+                StringBuilder sb = new StringBuilder();
+                sb.append("echo $(( `stat -c \"%Y\" ");
+                sb.append(filename);
+                sb.append("`-`date +%s`))");
+                final Command cmd = session.exec(sb.toString());
+                InputStream is = cmd.getInputStream();
+                byte buffer[] = new byte[255];
+                is.read(buffer);
+                String buf = new String(buffer).trim();
+                cmd.join();
+                /*System.out.println("Client " + machine.getIpAddress() + " log modified "
+                        + ((-1)*Integer.valueOf(buf)) + " seconds ago ... "
+                        + machine.getUUID()); */
+                return ((-1)*Integer.valueOf(buf));
+            } finally {
+                // whatever happens, do not forget to close the session
+                session.close();
+            }
+        } finally {
+            // whatever happens, do not forget to disconnect the client
+            ssh.disconnect();
+        }
+    }
+    
     
     /**
      * 
