@@ -131,7 +131,7 @@ public class Coordinator
             try {
                 Method method = coordinator.getClass().getDeclaredMethod(tests.get(i), MachineManager.class);
                 method.invoke(coordinator, mm);
-                
+
             } catch (NoSuchMethodException|InvocationTargetException|IllegalAccessException e) {
                 LOGGER.log(Level.SEVERE, "Test method invocation error.", e);
                 System.exit(11);
@@ -158,24 +158,42 @@ public class Coordinator
         mm.joinAllThreads();
     }
 
-    private void asyncServersTest(MachineManager mm) {
-        System.out.println("[INFO] Run tests with different server types in async mode");
+    private void loadAllServerTypesTest(MachineManager mm, String mode) {
         String[] servers = {"xnio3", "nio2", "netty"};
-        String mode = "async";
+        System.out.println("[INFO] Run tests with different server types in " + mode + " mode");
         for(int i = 0; i < servers.length; i++) {
             try {
                 mm.getServer().setServerType(servers[i]);
                 mm.getServer().setServerMode(mode);
 
                 System.out.println("[INFO] Run tests with " + servers[i] + " server type");
-                runClients(mm, Utils.getMethodName(0));
-                /*if (i < servers.length - 1) {
-                    mm.updateWorkingThreads();
-                }*/
+                loadDefaultServerTypeTest(mm);
             } catch (WrongServerTypeException|WrongServerModeException e) {
                 LOGGER.log(Level.SEVERE, "Wrong server type ot mode name.", e);
             }
         }
+    }
+
+    private void loadAllAsyncServerTypesTest(MachineManager mm) {
+        loadAllServerTypesTest(mm, "async");
+    }
+
+    private void loadAllSyncServerTypesTest(MachineManager mm)  {
+        loadAllServerTypesTest(mm, "sync");
+    }
+
+    private void loadDefaultServerTypeTest(MachineManager mm) {
+        System.out.println("[INFO] Run tests with different server load");
+        //int[] requestNum = {2000, 5000, 7500, 10000, 13000, 15000, 19000, 20500};
+        int[] requestNum = {2, 5, 7};
+        for(int i = 0; i < requestNum.length; i++) {
+            for(int j = 0; j < mm.getClientsNum(); j++) {
+                mm.getClientNo(j).setNoReq(requestNum[i]);
+            }
+            runClients(mm, "defaultTest");
+        }
+
+        mm.joinAllThreads();
     }
 
     private void allTests(MachineManager mm) {
