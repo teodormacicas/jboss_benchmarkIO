@@ -243,11 +243,18 @@ public class JioClient extends Thread {
 			 */
 			counter++;
 		}
-		
+
+        Long sum = 0l;
+
 		for (Long d : delays) {
 			System.out.println(d);
+            sum += d;
 		}
-	}
+
+        //calculating an average response
+        Long responseAvg = sum/delays.size();
+        System.out.println("Average response time:" + responseAvg);
+    }
 	
 	/**
 	 * 
