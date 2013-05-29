@@ -154,8 +154,6 @@ public class Coordinator
             }
             runClients(mm, "defaultTest");
         }
-        // now join the helper threads
-        mm.joinAllThreads();
     }
 
     private void loadAllServerTypesTest(MachineManager mm, String mode) {
@@ -193,7 +191,6 @@ public class Coordinator
             runClients(mm, "defaultTest");
         }
 
-        mm.joinAllThreads();
     }
 
     private void allTests(MachineManager mm) {

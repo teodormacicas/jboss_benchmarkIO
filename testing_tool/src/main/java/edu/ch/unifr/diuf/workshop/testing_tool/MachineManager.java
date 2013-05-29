@@ -838,13 +838,15 @@ public class MachineManager
         this.wst.setFinished(true);
         this.cmt.setFinished(true);
         this.crpt.setFinished(true);
-        this.ftt.setFinished(true);
         try {
             this.cct.join(4000);
             this.wst.join(4000);
             this.cmt.join(4000);
             this.crpt.join(4000);
-            this.ftt.join(4000);
+            if (this.ftt != null) {
+                this.ftt.setFinished(true);
+                this.ftt.join(4000);
+            }
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
