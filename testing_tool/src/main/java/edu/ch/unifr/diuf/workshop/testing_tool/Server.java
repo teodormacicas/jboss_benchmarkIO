@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.transport.TransportException;
 
 /**
@@ -143,37 +144,41 @@ public class Server extends Machine
     
     /**
       * 
+      * @param sshClient
       * @param file 
       */
-    public void uploadProgram(String file) throws FileNotFoundException, IOException {
-        this.uploadFile(file, Utils.SERVER_PROGRAM_REMOTE_FILENAME);
+    public void uploadProgram(String file, SSHClient ssh_client) 
+            throws FileNotFoundException, IOException {
+        this.uploadFile(file, Utils.SERVER_PROGRAM_REMOTE_FILENAME, ssh_client);
     }
     
     /**
      * 
+     * @param sshClient
      * @return
      * @throws TransportException
      * @throws IOException 
      */
-    public int runServerRemotely() throws TransportException, IOException { 
-        int r = SSHCommands.startServerProgram(this);
+    public int runServerRemotely(SSHClient ssh_client) throws TransportException, IOException { 
+        int r = SSHCommands.startServerProgram(this, ssh_client);
         if( r != 0 ) { 
             System.out.println("[ERROR] Server could not be properly started! "
                     + "Exit code: " + r);
-            getServerLogAndPrintIt();
+            getServerLogAndPrintIt(ssh_client);
             return -1;
         }
-        this.setPID(SSHCommands.getProgramPID(this));
+        this.setPID(SSHCommands.getProgramPID(this, ssh_client));
         return 0;
     }
     
     /**
      * 
+     * @param sshClient
      * @throws IOException 
      */
-    private void getServerLogAndPrintIt() throws IOException { 
+    private void getServerLogAndPrintIt(SSHClient ssh_client) throws IOException { 
         SSHCommands.downloadRemoteFile(this, Utils.getServerLogRemoteFilename(this),
-                Utils.getServerLogRemoteFilename(this));
+                Utils.getServerLogRemoteFilename(this), ssh_client);
         int no_lines = 15;
         System.out.println("[INFO] Print maximum " + no_lines + " from the server log. "
                 + "Please check the local log for more information! ");
@@ -223,13 +228,15 @@ public class Server extends Machine
     
     /**
      * 
+     * @param sshClient
      * @return
      * @throws TransportException
      * @throws IOException 
      */
-    public int killServer() throws TransportException, IOException { 
+    public int killServer(SSHClient ssh_client) 
+            throws TransportException, IOException { 
         if( getPID() != 0 )
-            return SSHCommands.killProgram(this);
+            return SSHCommands.killProgram(this, ssh_client);
         return 1;
     }
 }

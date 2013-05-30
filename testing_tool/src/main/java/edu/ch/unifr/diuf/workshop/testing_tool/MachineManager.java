@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.transport.TransportException;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
@@ -30,6 +31,7 @@ public class MachineManager
             MachineManager.class.getName());
     
     private ArrayList<Client> clients;
+    private ArrayList<SSHClient> sshClients;
     private Server server;
     
     private MachineConnectivityThread cct;
@@ -45,10 +47,12 @@ public class MachineManager
         // sleep this time between two consecutive checks
         private int delay;
         private boolean finish;
+        private ArrayList<SSHClient> sshClients;
         
         public MachineConnectivityThread(int delay) {
             this.delay = delay;
             this.finish = false;
+            this.sshClients = createSSHConnectionsToServerAndClients();
         }
         
         public void setFinished(boolean finish) {
@@ -61,7 +65,7 @@ public class MachineManager
             while( !finish ) {
                 // check server connection
                 try {
-                    server.checkSSHConnection();
+                    server.checkSSHConnection(sshClients.get(0));
                     server.setStatusConnection(Machine.Status.OK);
                     server_up = true;
                 } catch (SSHConnectionException ex) {
@@ -77,9 +81,8 @@ public class MachineManager
                     // now check client connectivity only if the server is up
                     for(Iterator it=clients.iterator(); it.hasNext(); ) {
                         Client c = (Client)it.next();
-
                         try {
-                           c.checkSSHConnection();
+                           c.checkSSHConnection(sshClients.get(c.getId()+1));
                            c.setStatusConnection(Machine.Status.OK);
                         } catch (SSHConnectionException ex) {         
                             c.setStatusConnection(Machine.Status.SSH_CONN_PROBLEMS);
@@ -97,6 +100,7 @@ public class MachineManager
                     ex.printStackTrace();
                 }
             }
+            disconnectSSHClients(sshClients);
         }
     }
       
@@ -108,6 +112,7 @@ public class MachineManager
         private boolean finish;
         private FileOutputStream fis;
         private DateFormat dateFormat;
+        
         
         public WriteStatusThread(int delay, String filePath) {
             this.delay = delay;
@@ -173,10 +178,12 @@ public class MachineManager
         private int delay;
         private boolean finish;
         private FileOutputStream fis;
+        private ArrayList<SSHClient> sshClients;
         
         public CheckMessagesThread(int delay) {
             this.delay = delay;
             this.finish = false;
+            this.sshClients = createSSHConnectionsToServerAndClients();
         }
         
         public void setFinished(boolean finish) {
@@ -195,19 +202,22 @@ public class MachineManager
                     for(Iterator it=clients.iterator(); it.hasNext(); ) {
                         Client c = (Client)it.next();
                         // check if the remote client is done with the requests
-                        r = SSHCommands.testRemoteFileExists(c, Utils.getClientRemoteDoneFilename(c));
+                        r = SSHCommands.testRemoteFileExists(c, 
+                                Utils.getClientRemoteDoneFilename(c), sshClients.get(c.getId()+1));
                         if( r == 0 ) {
                             c.setStatusSynch(Status.DONE);
                             continue;
                         }
                         // if not, test if the cleint is still sending requests 
-                        r = SSHCommands.testRemoteFileExists(c, Utils.getClientRemoteStartRequestsFilename(c));
+                        r = SSHCommands.testRemoteFileExists(c, 
+                                Utils.getClientRemoteStartRequestsFilename(c), sshClients.get(c.getId()+1));
                         if( r == 0 ) {
                             c.setStatusSynch(Status.RUNNING_REQUESTS);
                             continue;
                         }
                         // if not, check if the client has its threads synchronized
-                        r = SSHCommands.testRemoteFileExists(c, Utils.getClientRemoteSynchThreadsFilename(c));
+                        r = SSHCommands.testRemoteFileExists(c, 
+                                Utils.getClientRemoteSynchThreadsFilename(c), sshClients.get(c.getId()+1));
                         if( r == 0 ) {
                             c.setStatusSynch(Status.SYNCH_THREADS);
                             continue;
@@ -227,6 +237,7 @@ public class MachineManager
                     ex.printStackTrace();
                 }
             }
+            disconnectSSHClients(sshClients);
         }
     }
     
@@ -238,10 +249,12 @@ public class MachineManager
         private int delay;
         private boolean finish;
         private FileOutputStream fis;
+        private ArrayList<SSHClient> sshClients;
         
         public CheckRunningPIDsThread(int delay) {
             this.delay = delay;
             this.finish = false;
+            this.sshClients = createSSHConnectionsToServerAndClients();
         }
         
         public void setFinished(boolean finish) {
@@ -260,7 +273,7 @@ public class MachineManager
                     // check server
                     if( server.getPID() != 0 ) {
                         r = SSHCommands.checkIfRemotePIDIsRunning(server, 
-                                server.getPID());
+                                server.getPID(), sshClients.get(0));
                         if( r == 0 )
                             server.setStatusProcess(Status.PID_RUNNING);
                         else
@@ -274,7 +287,8 @@ public class MachineManager
                         Client c = (Client)it.next();
                         // check only if the program has been started and the PID gathered
                         if( c.getPID() != 0 ) {
-                            r = SSHCommands.checkIfRemotePIDIsRunning(c, c.getPID());
+                            r = SSHCommands.checkIfRemotePIDIsRunning(c,
+                                    c.getPID(), sshClients.get(c.getId()+1));
                             if( r == 0 )
                                 c.setStatusProcess(Status.PID_RUNNING);
                             else
@@ -295,6 +309,7 @@ public class MachineManager
                     ex.printStackTrace();
                 }
             }
+            disconnectSSHClients(sshClients);
         }
     }
     
@@ -306,11 +321,13 @@ public class MachineManager
         private boolean finish;
         private Thread runningTestThread;
         private double failingClients;
+        private ArrayList<SSHClient> sshClients;
         
         public FaultTolerantThread(int delay, Thread runningTestThread) {
             this.delay = delay;
             this.finish = false;
             this.runningTestThread = runningTestThread;
+            this.sshClients = createSSHConnectionsToServerAndClients();
         }
         
         public void setFinished(boolean finish) {
@@ -319,7 +336,6 @@ public class MachineManager
         
         private boolean failingCondition() throws TransportException, IOException { 
             int failing_clients=0;
-            failingClients = 0;
             if( server.status_process == Status.PID_NOT_RUNNING ) 
                 return true;
             
@@ -333,7 +349,8 @@ public class MachineManager
                     continue;
                 } 
                 // client running, but lately no data in the log
-                if( c.status_process == Status.PID_RUNNING && ! c.isProgressing() ) {
+                if( c.status_process == Status.PID_RUNNING && 
+                        !c.isProgressing(sshClients.get(c.getId()+1)) ) {
                     System.out.println("[FAILURE] Client PID RUNNING, but no progress on the log file. "
                             + "Last progress it was " + c.getLastLogModification() + " seconds ago ...");
                     failing_clients++;
@@ -366,22 +383,19 @@ public class MachineManager
                         System.out.println("[FAILURE] " + (failingClients*100) + "% of the clients "
                                 + "have failed. Therefore, restart the test ...");
                         runningTestThread.interrupt();
-                        Thread.sleep(5000);
+                        Thread.sleep(15000);
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
             }
+            disconnectSSHClients(sshClients);
         }
     }
     
     public MachineManager() {
         this.clients = new ArrayList<Client>();
         this.server = null;
-        this.cct = new MachineConnectivityThread(Utils.DELAY_CHECK_CONN_MS);
-        this.wst = new WriteStatusThread(Utils.DELAY_WRITE_STATUS_MS, Utils.STATUS_FILENAME);
-        this.cmt = new CheckMessagesThread(Utils.DELAY_CHECK_MESSAGES);
-        this.crpt = new CheckRunningPIDsThread(Utils.DELAY_CHECK_RUNNING_PIDS);
     }
     
      /**
@@ -406,6 +420,10 @@ public class MachineManager
         return clients.get(no);
     }
 
+    /**
+     * 
+     * @return 
+     */
     public int getClientsNum() {
         return clients.size();
     }
@@ -424,6 +442,14 @@ public class MachineManager
      */
     public Server getServer() { 
         return this.server;
+    }
+    
+    /**
+     * 
+     * @return 
+     */
+    public ArrayList<SSHClient> getSSHClients() { 
+        return this.sshClients;
     }
     
     /**
@@ -552,7 +578,7 @@ public class MachineManager
                     + client_address);
             }
             Client c = new Client(st.nextToken(), Integer.valueOf(st.nextToken()), 
-                    client_ssh_username, client_ssh_password);
+                    client_ssh_username, client_ssh_password, counter);
             // set server info 
             c.setServerInfo(server.getIpAddress(), server.getServerHttpPort());
             // set running parameters
@@ -577,6 +603,60 @@ public class MachineManager
             this.addNewClient(c);
         }
     }
+    
+    /**
+     * 
+     */
+    public void createSSHClients() {
+        // now create also the ssh 
+        this.sshClients = createSSHConnectionsToServerAndClients();
+    }
+    
+    /**
+     * 
+     * @return 
+     */
+    public ArrayList<SSHClient> createSSHConnectionsToServerAndClients() {
+        ArrayList<SSHClient> ssh_clients = new ArrayList<>();
+        SSHClient server_ssh = new SSHClient();
+        try {
+            server_ssh.loadKnownHosts();
+            server_ssh.connect(server.getIpAddress(), server.getPort());
+            server_ssh.authPublickey(server.getSSHUsername());
+            ssh_clients.add(0, server_ssh);
+            //System.out.println("add server ");
+            
+            SSHClient client_ssh; 
+            for(Iterator it=clients.iterator(); it.hasNext(); ) {
+                Client c = (Client) it.next(); 
+                //System.out.println("add client " + c.getIpAddress());
+                client_ssh = new SSHClient();
+                client_ssh.loadKnownHosts();
+                client_ssh.connect(c.getIpAddress(), c.getPort());
+                client_ssh.authPublickey(c.getSSHUsername());
+                ssh_clients.add(client_ssh);
+            }
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, null, ex);
+        }
+        return ssh_clients;
+    }
+    
+    /**
+     * 
+     * @param ssh_clients 
+     */
+    public void disconnectSSHClients(ArrayList<SSHClient> ssh_clients) { 
+        for(Iterator it=ssh_clients.iterator(); it.hasNext(); ) {
+            SSHClient s = (SSHClient) it.next();
+            try {
+                s.disconnect();
+            } catch (IOException ex) {
+                LOGGER.log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    
     
     /**
      *
@@ -624,7 +704,7 @@ public class MachineManager
         // iterate through clients and check whether they can ping the server
         for(Iterator it=clients.iterator(); it.hasNext(); ) {
             Client c = (Client) it.next(); 
-            r = SSHCommands.clientPingServer(c);
+            r = SSHCommands.clientPingServer(c, sshClients.get(c.getId()+1));
             if( r != 0 )
                 return false;
         }
@@ -642,9 +722,10 @@ public class MachineManager
             throws FileNotFoundException, IOException {        
         for(Iterator it=clients.iterator(); it.hasNext(); ) {
             Client c = (Client)it.next(); 
-            c.uploadProgram(Utils.CLIENT_PROGRAM_LOCAL_FILENAME);
+            c.uploadProgram(Utils.CLIENT_PROGRAM_LOCAL_FILENAME, sshClients.get(c.getId()+1));
             // test the remote file exists
-            int r = SSHCommands.testRemoteFileExists(c, Utils.getClientProgramRemoteFilename(c));
+            int r = SSHCommands.testRemoteFileExists(c, 
+                    Utils.getClientProgramRemoteFilename(c), sshClients.get(c.getId()+1));
             if( r == 0 )
                 System.out.println("[INFO] Remote file successfuly uploaded on client " + 
                         c.getIpAddress() + ".");
@@ -660,9 +741,10 @@ public class MachineManager
      */
     public void uploadProgramToServer() 
             throws FileNotFoundException, IOException {        
-        server.uploadProgram(Utils.SERVER_PROGRAM_LOCAL_FILENAME);
+        server.uploadProgram(Utils.SERVER_PROGRAM_LOCAL_FILENAME, sshClients.get(0));
         // test the remote file exists
-        int r = SSHCommands.testRemoteFileExists(server, Utils.getServerProgramRemoteFilename(server));
+        int r = SSHCommands.testRemoteFileExists(server, 
+                Utils.getServerProgramRemoteFilename(server), sshClients.get(0));
         if( r == 0 )
             System.out.println("[INFO] Remote file successfuly uploaded on server " + 
                         server.getIpAddress() + ".");
@@ -671,7 +753,7 @@ public class MachineManager
                         server.getIpAddress() + "." + " Error code: " + r);
         
         // make remote dir 'data' to copy all the files 
-        SSHCommands.createRemoteFolder(server, "data/");
+        SSHCommands.createRemoteFolder(server, "data/", sshClients.get(0));
         
         String files;
         File folder = new File(server.getDataFolderPath());
@@ -681,9 +763,18 @@ public class MachineManager
                 files = listOfFiles[i].getName();
                 // and now upload the data folder as well 
                 SSHCommands.uploadRemoteFile(server, server.getDataFolderPath()+"/"+files, 
-                        "data/"+files);
+                        "data/"+files, sshClients.get(0));
             }
         }
+    }
+    
+    /**
+     * 
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public void deleteServerDataFiles() throws TransportException, IOException {
+        SSHCommands.deleteRemoteFile(server, "data/", sshClients.get(0));
     }
     
     /**
@@ -712,7 +803,7 @@ public class MachineManager
      * @throws IOException 
      */
     public void startServer() throws TransportException, IOException { 
-        server.runServerRemotely();
+        server.runServerRemotely(sshClients.get(0));
     }
     
     /**
@@ -723,19 +814,15 @@ public class MachineManager
     public void startAllClients() throws TransportException, IOException { 
         for(Iterator it=clients.iterator(); it.hasNext(); ) { 
             Client c = (Client)it.next();
-            c.runClientRemotely(this.server);
+            c.runClientRemotely(this.server, sshClients.get(c.getId()+1));
         }
-    }
-    
-    //TODO
-    public void getAllLogFiles() { 
-        
-    }
+    }    
     
     /**
      * Start only the connectivity thread firstly.
      */
     public void startConnectivityThread() {
+         this.cct = new MachineConnectivityThread(Utils.DELAY_CHECK_CONN_MS);
          this.cct.start();
     }
     
@@ -744,6 +831,9 @@ public class MachineManager
      * Just run the status, check messages and check PIDs threads. 
      */
     public void startOtherThreads() {
+        this.wst = new WriteStatusThread(Utils.DELAY_WRITE_STATUS_MS, Utils.STATUS_FILENAME);
+        this.cmt = new CheckMessagesThread(Utils.DELAY_CHECK_MESSAGES);
+        this.crpt = new CheckRunningPIDsThread(Utils.DELAY_CHECK_RUNNING_PIDS);
         try {
              // write status 
              this.wst.start();
@@ -778,10 +868,19 @@ public class MachineManager
      * @throws TransportException
      * @throws IOException 
      */
+    public void killServer() throws TransportException, IOException { 
+        server.killServer(sshClients.get(0));
+    }
+    
+    /**
+     * 
+     * @throws TransportException
+     * @throws IOException 
+     */
     public void killClients() throws TransportException, IOException { 
         for(Iterator it=clients.iterator(); it.hasNext(); ) { 
             Client c = (Client)it.next();
-            c.killClient();
+            c.killClient(sshClients.get(c.getId()+1));
         }
     }
     
@@ -793,7 +892,8 @@ public class MachineManager
     public void sendClientsMsgToStartRequests() throws TransportException, IOException { 
         for(Iterator it=clients.iterator(); it.hasNext(); ) { 
             Client c = (Client)it.next();
-            SSHCommands.createRemoteFile(c, Utils.getClientRemoteStartRequestsFilename(c));
+            SSHCommands.createRemoteFile(c, Utils.getClientRemoteStartRequestsFilename(c),
+                    sshClients.get(c.getId()+1));
         }
     }
     
@@ -817,14 +917,15 @@ public class MachineManager
      */
     public void downloadAllLogs() throws IOException { 
         SSHCommands.downloadRemoteFile(server, Utils.getServerLogRemoteFilename(server),
-                Utils.getServerLocalFilename(testNum));
+                Utils.getServerLocalFilename(testNum), sshClients.get(0));
         System.out.println("[INFO] Server log file " + Utils.getServerLocalFilename(testNum) +
                 " is locally downloaded. Please check it." );
         int counter=-1;
         for(Iterator it=clients.iterator(); it.hasNext(); ) { 
             Client c = (Client)it.next();
             SSHCommands.downloadRemoteFile(c, Utils.getClientLogRemoteFilename(c),
-                    Utils.getClientLocalFilename(++counter, testNum));
+                    Utils.getClientLocalFilename(++counter, testNum), 
+                    sshClients.get(c.getId()+1));
         }
         testNum++;
     }
@@ -838,13 +939,19 @@ public class MachineManager
         this.wst.setFinished(true);
         this.cmt.setFinished(true);
         this.crpt.setFinished(true);
-        this.ftt.setFinished(true);
         try {
+            //System.out.println("Join cct");
             this.cct.join(4000);
+            //System.out.println("Join wst");
             this.wst.join(4000);
+            //System.out.println("Join cmt");
             this.cmt.join(4000);
+            //System.out.println("Join crpt");
             this.crpt.join(4000);
-            this.ftt.join(4000);
+            if( this.ftt != null ) {
+                this.ftt.setFinished(true);
+                this.ftt.join(4000);
+            }
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
@@ -868,9 +975,9 @@ public class MachineManager
             throws TransportException, IOException { 
         for(Iterator it=clients.iterator(); it.hasNext(); ) {
             Client c = (Client)it.next();
-            c.deletePreviousRemoteMessages();
+            c.deletePreviousRemoteMessages(sshClients.get(c.getId()+1));
             // also the logs
-            SSHCommands.deleteRemoteFile(c, "log*.data");
+            SSHCommands.deleteRemoteFile(c, "log*.data", sshClients.get(c.getId()+1));
         }
     }
     

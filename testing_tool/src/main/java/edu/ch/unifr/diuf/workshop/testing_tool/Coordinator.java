@@ -27,6 +27,7 @@ public class Coordinator
         try {
             System.out.println("Parsing properties file ...");
             mm.parsePropertiesFile();
+            mm.createSSHClients();
         }
         catch( WrongIpAddressException|WrongPortNumberException|ClientNotProperlyInitException ex ) {
             LOGGER.log(Level.SEVERE, "[EXCEPTION] Setting up a machine.", ex);
@@ -56,7 +57,24 @@ public class Coordinator
                     + "and server OR non-loopback for all machines. This will be "
                     + "more probably they can reach other.");
             System.exit(7);
+        } 
+       
+       /* 
+        // JUST FOR TESTING
+        System.out.println("Client 0 ping server ... ");
+        start = System.currentTimeMillis();
+        try {
+            int r = SSHCommands.clientPingServer(mm.getClientNo(0));
+        } catch (TransportException ex) {
+            ex.printStackTrace();
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
+        System.out.println("Client 0 ping server DONE in:  " + (System.currentTimeMillis()-start));
+        if( 1 == 1 ) { 
+            System.exit(1);
+        }*/       
+        
         
         System.out.println("[INFO] Checking if all clients can ping the server ...");
         try {
@@ -76,7 +94,7 @@ public class Coordinator
             System.exit(8);
         }
         System.out.println("[INFO] All clients have network connection with server.");
-
+        
         // delete also local .data files
         try {
             Runtime.getRuntime().exec("/bin/bash rm log*.data").waitFor();
@@ -97,8 +115,9 @@ public class Coordinator
                 LOGGER.log(Level.SEVERE, null, ex);
                 System.exit(10);
         }
-        
         // now start the connectivity and status threads
+        System.out.println("[INFO] Start the connectivity thread. "
+                + "NOTE: if public-key auth is used then this may take some time ...");
         mm.startConnectivityThread();
 
         System.out.println("[INFO] Checking if all machines are in a runnable state ...");
@@ -119,8 +138,9 @@ public class Coordinator
             ex.printStackTrace();
         }
         System.out.println("[INFO] ALL machines checked and they are in a runnable state.");
-
-        System.out.println("[INFO] Starting the threads for checking connectivity, status and running PIDs ...");
+                
+        System.out.println("[INFO] Starting the threads for checking connectivity, status and running PIDs. "
+                            + "NOTE: if public-key auth is used then this may take some time ...");
         // now start all the other thread as the connectity at this point should be ok
         mm.startOtherThreads();
 
@@ -138,8 +158,11 @@ public class Coordinator
             }
         }
         mm.joinAllThreads();
+        mm.disconnectSSHClients(mm.getSSHClients());
     }
 
+    
+    /** TESTS ***/
     private void defaultTest(MachineManager mm) {
         System.out.println("[INFO] Run test with config parameters");
         runClients(mm, "defaultTest");
@@ -152,10 +175,8 @@ public class Coordinator
             for(int j = 0; j < mm.getClientsNum(); j++) {
                 mm.getClientNo(j).setDelay(delays[i]);
             }
-            runClients(mm, "defaultTest");
+            runClients(mm, "delayTest");
         }
-        // now join the helper threads
-        mm.joinAllThreads();
     }
 
     private void loadAllServerTypesTest(MachineManager mm, String mode) {
@@ -190,10 +211,8 @@ public class Coordinator
             for(int j = 0; j < mm.getClientsNum(); j++) {
                 mm.getClientNo(j).setNoReq(requestNum[i]);
             }
-            runClients(mm, "defaultTest");
+            runClients(mm, "loadDefaultServerTypeTest");
         }
-
-        mm.joinAllThreads();
     }
 
     private void allTests(MachineManager mm) {
@@ -201,7 +220,13 @@ public class Coordinator
         defaultTest(mm);
         delayTest(mm);
     }
+    /** END TESTS ***/
     
+    /**
+     * 
+     * @param mm
+     * @param testName 
+     */
     private void runClients(MachineManager mm, String testName) {
         RunClient rc = new RunClient(mm, mm.getServer().getRestartAttempts(), testName);
         rc.start();
@@ -220,7 +245,8 @@ public class Coordinator
             LOGGER.log(Level.INFO, "Test " + testName + " was successfully run. ");
     }
     
-    
+    // it runs the server and client for a given test
+    // this thread may be interrupted in case of failure
     class RunClient extends Thread 
     {
         private MachineManager mm;
@@ -263,11 +289,11 @@ public class Coordinator
                 // sending different messages
                 mm.deleteClientPreviouslyMessages();
                 
-                System.out.println("[INFO] Start the server ... ");
+                System.out.println("[INFO] START the server ... ");
                 // run the server remotely
-                mm.getServer().runServerRemotely();
-
-                System.out.println("[INFO] Start the clients ...  ");
+                mm.startServer();
+                // run the clients remotely
+                System.out.println("[INFO] START the clients ...  ");
                 mm.startAllClients();
                 
                 // check if all clients are synchronized
@@ -322,9 +348,9 @@ public class Coordinator
                     System.out.println("[INFO] Kill all the clients (if they are still running) ... ");
                     mm.killClients();
                     System.out.println("[INFO] Kill the server ... ");
-                    mm.getServer().killServer();
+                    mm.killServer();
                     // delete the data files also
-                    SSHCommands.deleteRemoteFile(mm.getServer(), "data/");
+                    mm.deleteServerDataFiles();
                 } catch (Exception ex) {
                     Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
                 }

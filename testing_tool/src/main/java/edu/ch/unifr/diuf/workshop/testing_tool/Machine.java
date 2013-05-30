@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.userauth.UserAuthException;
 
@@ -217,11 +218,12 @@ public class Machine
     /**
      * Checks if an SSH connection is successful. 
      *
+     * @param sshClient
      * @throws SSHConnectionException if exceptions were caught
      */
-    public void checkSSHConnection() throws SSHConnectionException {
+    public void checkSSHConnection(SSHClient ssh_client) throws SSHConnectionException {
         try {
-            SSHCommands.testConnection(this);
+            SSHCommands.testConnection(this, ssh_client);
         } catch( TransportException ex ) {
             LOGGER.log(Level.SEVERE, "Exception thrown while trying to connect to machine ("
                     + this.getIpAddress()+"). Check ~/.ssh/known_hosts file if "
@@ -257,13 +259,14 @@ public class Machine
      * 
      * @param localFile
      * @param remoteFile 
+     * @param sshClient
      */
-    protected void uploadFile(String localFile, String remoteFile) 
+    protected void uploadFile(String localFile, String remoteFile, SSHClient sshClient) 
             throws FileNotFoundException, IOException {
         if( ! new File(localFile).exists() )
             throw new FileNotFoundException("Local file " + localFile 
                     +" to upload does not exist.");
-        SSHCommands.uploadRemoteFile(this, localFile, remoteFile);
+        SSHCommands.uploadRemoteFile(this, localFile, remoteFile, sshClient);
     }
 }
 

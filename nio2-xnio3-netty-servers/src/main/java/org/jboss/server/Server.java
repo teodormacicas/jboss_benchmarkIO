@@ -57,7 +57,6 @@ public abstract class Server {
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		System.out.println();
 		if (args.length < 2) {
 			System.err.println("Usage: java " + Server.class.getName() + " type mode [port]\n");
 			System.err.println("  --> type: xnio, nio or netty (Allowed values: \"xnio3\", \"nio2\" and \"netty\")");
@@ -82,6 +81,7 @@ public abstract class Server {
                 //IMPORTANT FOR TESTING TOOL; DO NOT DELETE!
                 String PID = ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
                 System.out.println("PID: "+PID);
+                System.out.flush();
                 
 		switch (args[0]) {
 			case "nio2":

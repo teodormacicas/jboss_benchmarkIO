@@ -326,6 +326,7 @@ public class JioClient extends Thread {
                 //IMPORTANT FOR TESTING TOOL; DO NOT DELETE!
                 String PID = ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
                 System.out.println("PID: "+PID);
+                System.out.flush();
             
 		if (args.length < 3) {
 			System.err.println("Usage: java " + JioClient.class.getName()

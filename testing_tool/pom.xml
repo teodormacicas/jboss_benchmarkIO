@@ -33,6 +33,13 @@
       <artifactId>sshj</artifactId>
       <version>0.8.1</version>
     </dependency>
+
+   <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk16</artifactId>
+      <version>1.46</version>
+   </dependency>
+
    <!-- used by sshj for compressing files while transfering remotely -->
    <dependency>
       <groupId>com.jcraft</groupId>

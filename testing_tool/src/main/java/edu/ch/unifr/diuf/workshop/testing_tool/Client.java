@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.transport.TransportException;
 
 /**
@@ -20,11 +21,13 @@ public class Client extends Machine
     private double restartCond; //percentage of dead clients needed to restart a test
     private int timeoutSec; // after this vlaue, the client is considered dead
     private int lastLogAccessSec;
+    private Integer clientId;
     
     // set here the name of the tests to be run 
     private List<String> tests;
     
-    public Client(String ipAddress, int port, String sshUsername, String sshPassword) 
+    public Client(String ipAddress, int port, String sshUsername, 
+            String sshPassword, Integer id) 
             throws WrongIpAddressException, WrongPortNumberException {
         super();
         this.setIpAddress(ipAddress);
@@ -38,6 +41,7 @@ public class Client extends Machine
         this.noThreads = 1;
         this.delay = 1000;
         this.noReq = 1;
+        this.clientId = id;
     }
     
     /**
@@ -179,12 +183,21 @@ public class Client extends Machine
     
     /**
      * 
+     * @return 
+     */
+    public Integer getId() { 
+        return this.clientId;
+    }
+    
+    /**
+     * 
+     * @param sshClient
      * @throws TransportException
      * @throws IOException 
      */
-    public int killClient() throws TransportException, IOException { 
+    public int killClient(SSHClient ssh_client) throws TransportException, IOException { 
         if( getPID() != 0 )
-            return SSHCommands.killProgram(this);
+            return SSHCommands.killProgram(this, ssh_client);
         return 1;
     }
     
@@ -232,9 +245,11 @@ public class Client extends Machine
     /**
      * 
      * @param file
+     * @param sshclient
      */
-    public void uploadProgram(String file) throws FileNotFoundException, IOException {
-        this.uploadFile(file, Utils.getClientProgramRemoteFilename(this));
+    public void uploadProgram(String file, SSHClient ssh_client) 
+            throws FileNotFoundException, IOException {
+        this.uploadFile(file, Utils.getClientProgramRemoteFilename(this), ssh_client);
     }              
     
     /**
@@ -251,40 +266,48 @@ public class Client extends Machine
     
     /**
      * Actually delete some empty files that might have been previously used.
+     * 
+     * @param sshClient
      */
-    public void deletePreviousRemoteMessages() 
+    public void deletePreviousRemoteMessages(SSHClient ssh_client) 
             throws TransportException, IOException { 
-        SSHCommands.deleteRemoteFile(this, "*"+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_THREADS_SYNCH);
-        SSHCommands.deleteRemoteFile(this, "*"+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_START_SENDING_REQUESTS);
-        SSHCommands.deleteRemoteFile(this, "*"+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_FINISHED);
+        SSHCommands.deleteRemoteFile(this, "*"+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_THREADS_SYNCH, 
+                ssh_client);
+        SSHCommands.deleteRemoteFile(this, "*"+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_START_SENDING_REQUESTS,
+                ssh_client);
+        SSHCommands.deleteRemoteFile(this, "*"+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_FINISHED,
+                ssh_client);
     }
     
     /**
      * 
+     * @param sshClient
      * @return
      * @throws TransportException
      * @throws IOException 
      */
-    public int runClientRemotely(Server server) throws TransportException, IOException { 
-        int r = SSHCommands.startClientProgram(this, server);
+    public int runClientRemotely(Server server, SSHClient ssh_client) 
+            throws TransportException, IOException { 
+        int r = SSHCommands.startClientProgram(this, server, ssh_client);
         if( r != 0 ) { 
             System.out.println("[ERROR] Client could not be properly started! "
                     + "Exit code: " + r);
             return -1;
         }
-        this.setPID(SSHCommands.getProgramPID(this));
+        this.setPID(SSHCommands.getProgramPID(this, ssh_client));
         return 0;
     }
     
     /**
      * 
+     * @param sshClient
      * @return
      * @throws TransportException
      * @throws IOException 
      */
-    public boolean isProgressing() throws TransportException, IOException { 
+    public boolean isProgressing(SSHClient ssh_client) throws TransportException, IOException { 
         lastLogAccessSec = SSHCommands.getTimeSinceLastLogModification(this, 
-                Utils.getClientLogRemoteFilename(this));
+                Utils.getClientLogRemoteFilename(this), ssh_client);
         if( lastLogAccessSec > this.timeoutSec ) { 
             return false;
         }
