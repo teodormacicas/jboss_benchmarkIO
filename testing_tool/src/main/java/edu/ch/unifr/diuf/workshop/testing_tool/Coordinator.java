@@ -5,8 +5,6 @@ import org.apache.commons.configuration.ConfigurationException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -144,84 +142,64 @@ public class Coordinator
         // now start all the other thread as the connectity at this point should be ok
         mm.startOtherThreads();
 
-        //get tests to run
-        List<String> tests = mm.getClientNo(0).getTests();
-        Coordinator coordinator = new Coordinator();
-        for(int i = 0; i < tests.size(); i++) {
-            try {
-                Method method = coordinator.getClass().getDeclaredMethod(tests.get(i), MachineManager.class);
-                method.invoke(coordinator, mm);
+        // run tests
+        List<TestParams> testParamsList = mm.getTests();
+        Coordinator coord = new Coordinator();
 
-            } catch (NoSuchMethodException|InvocationTargetException|IllegalAccessException e) {
-                LOGGER.log(Level.SEVERE, "Test method invocation error.", e);
-                System.exit(11);
+        for(TestParams test: testParamsList) {
+
+            for (int i = 0; i < test.getTestNum(); i++) {
+
+                try {
+                    mm.getServer().setServerType(test.getServerType());
+                } catch (WrongServerTypeException e) {
+                    LOGGER.log(Level.SEVERE, "Server type error.", e);
+                    System.exit(11);
+                }
+
+                for(String mode :test.getServerModes()) {
+
+                    try {
+                        mm.getServer().setServerMode(mode);
+                    } catch (WrongServerModeException e) {
+                        LOGGER.log(Level.SEVERE, "Server mode error.", e);
+                        System.exit(12);
+                    }
+
+                    for(int j = 0; j < test.getRequestNum().length; j++) {
+
+                        coord.setAllClientsRequestNum(mm, Integer.valueOf(test.getRequestNum()[j]));
+
+                        for(int k = 0; k < test.getDelays().length; k++) {
+
+                            coord.setAllClientsDelay(mm, Integer.valueOf(test.getDelays()[k]));
+
+                            StringBuilder sbTest = new StringBuilder("[INFO] Test with parameters:");
+                            sbTest.append(test.getServerType()).append(' ').append(mode).append(' ').append(test.getRequestNum()[j]).append(' ').append(test.getDelays()[k]);
+                            System.out.println(sbTest.toString());
+                            coord.runClients(mm, sbTest.toString());
+                        }
+                    }
+                }
             }
         }
+
         mm.joinAllThreads();
         mm.disconnectSSHClients(mm.getSSHClients());
     }
 
-    
-    /** TESTS ***/
-    private void defaultTest(MachineManager mm) {
-        System.out.println("[INFO] Run test with config parameters");
-        runClients(mm, "defaultTest");
+    private void setAllClientsRequestNum(MachineManager mm, int requestNum)  {
+        for(int j = 0; j < mm.getClientsNum(); j++) {
+            mm.getClientNo(j).setNoReq(requestNum);
+        }
     }
 
-    private void delayTest(MachineManager mm) {
-        System.out.println("[INFO] Run tests with different delays");
-        int[] delays = {250, 225, 200, 175, 150, 125, 100};
-        for(int i = 0; i < delays.length; i++) {
+    private void setAllClientsDelay(MachineManager mm, int delay) {
             for(int j = 0; j < mm.getClientsNum(); j++) {
-                mm.getClientNo(j).setDelay(delays[i]);
-            }
-            runClients(mm, "delayTest");
+            mm.getClientNo(j).setDelay(delay);
         }
     }
 
-    private void loadAllServerTypesTest(MachineManager mm, String mode) {
-        String[] servers = {"xnio3", "nio2", "netty"};
-        System.out.println("[INFO] Run tests with different server types in " + mode + " mode");
-        for(int i = 0; i < servers.length; i++) {
-            try {
-                mm.getServer().setServerType(servers[i]);
-                mm.getServer().setServerMode(mode);
-
-                System.out.println("[INFO] Run tests with " + servers[i] + " server type");
-                loadDefaultServerTypeTest(mm);
-            } catch (WrongServerTypeException|WrongServerModeException e) {
-                LOGGER.log(Level.SEVERE, "Wrong server type ot mode name.", e);
-            }
-        }
-    }
-
-    private void loadAllAsyncServerTypesTest(MachineManager mm) {
-        loadAllServerTypesTest(mm, "async");
-    }
-
-    private void loadAllSyncServerTypesTest(MachineManager mm)  {
-        loadAllServerTypesTest(mm, "sync");
-    }
-
-    private void loadDefaultServerTypeTest(MachineManager mm) {
-        System.out.println("[INFO] Run tests with different server load");
-        //int[] requestNum = {2000, 5000, 7500, 10000, 13000, 15000, 19000, 20500};
-        int[] requestNum = {2, 5, 7};
-        for(int i = 0; i < requestNum.length; i++) {
-            for(int j = 0; j < mm.getClientsNum(); j++) {
-                mm.getClientNo(j).setNoReq(requestNum[i]);
-            }
-            runClients(mm, "loadDefaultServerTypeTest");
-        }
-    }
-
-    private void allTests(MachineManager mm) {
-        System.out.println("[INFO] Run all tests");
-        defaultTest(mm);
-        delayTest(mm);
-    }
-    /** END TESTS ***/
-    
     /**
      * 
      * @param mm

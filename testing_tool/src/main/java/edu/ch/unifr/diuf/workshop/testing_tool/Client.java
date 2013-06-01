@@ -22,10 +22,10 @@ public class Client extends Machine
     private int timeoutSec; // after this vlaue, the client is considered dead
     private int lastLogAccessSec;
     private Integer clientId;
-    
-    // set here the name of the tests to be run 
+
+    // set here the name of the tests to be run
     private List<String> tests;
-    
+
     public Client(String ipAddress, int port, String sshUsername, 
             String sshPassword, Integer id) 
             throws WrongIpAddressException, WrongPortNumberException {
@@ -164,23 +164,23 @@ public class Client extends Machine
     public int getLastLogModification() { 
         return this.lastLogAccessSec;
     }
-    
+
     /**
-     * 
-     * @param test 
+     *
+     * @param test
      */
-    public void addNewTest(String test) { 
+    public void addNewTest(String test) {
         this.tests.add(test);
     }
-    
+
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
-    public List<String> getTests() { 
+    public List<String> getTests() {
         return this.tests;
     }
-    
+
     /**
      * 
      * @return 
@@ -251,19 +251,19 @@ public class Client extends Machine
             throws FileNotFoundException, IOException {
         this.uploadFile(file, Utils.getClientProgramRemoteFilename(this), ssh_client);
     }              
-    
+
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
-    public String testsToString() { 
+    public String testsToString() {
         StringBuilder sb = new StringBuilder();
         for(int i=0; i<tests.size(); ++i) {
             sb.append(tests.get(i)).append(" ");
         }
         return sb.toString();
     }
-    
+
     /**
      * Actually delete some empty files that might have been previously used.
      * 
@@ -286,8 +286,8 @@ public class Client extends Machine
      * @throws TransportException
      * @throws IOException 
      */
-    public int runClientRemotely(Server server, SSHClient ssh_client) 
-            throws TransportException, IOException { 
+    public int runClientRemotely(Server server, SSHClient ssh_client)
+            throws TransportException, IOException, InterruptedException {
         int r = SSHCommands.startClientProgram(this, server, ssh_client);
         if( r != 0 ) { 
             System.out.println("[ERROR] Client could not be properly started! "
@@ -344,10 +344,10 @@ public class Client extends Machine
             sb.append("clients are synchronized; sending requests ...");
         else 
             sb.append("no info available yet.");
-        
+
         sb.append("\n\t\tTESTS: ");
         sb.append(testsToString());
-        
+
         sb.append("\n\t\tFAULT TOLERANCE: ");
         sb.append(this.getRestartConditionPropThreadsDead()+ " percentage of "
                 + "needed dead clients to restart.");

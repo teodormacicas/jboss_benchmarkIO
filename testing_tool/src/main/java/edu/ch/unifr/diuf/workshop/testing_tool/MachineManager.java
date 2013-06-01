@@ -33,6 +33,7 @@ public class MachineManager
     private ArrayList<Client> clients;
     private ArrayList<SSHClient> sshClients;
     private Server server;
+    private List<TestParams> tests;
     
     private MachineConnectivityThread cct;
     private WriteStatusThread wst;
@@ -395,6 +396,7 @@ public class MachineManager
     
     public MachineManager() {
         this.clients = new ArrayList<Client>();
+        this.tests = new ArrayList<>();
         this.server = null;
     }
     
@@ -443,7 +445,12 @@ public class MachineManager
     public Server getServer() { 
         return this.server;
     }
-    
+
+
+    public List<TestParams> getTests() {
+        return tests;
+    }
+
     /**
      * 
      * @return 
@@ -550,7 +557,7 @@ public class MachineManager
         }
         String clientsTimeoutSec = config.getString("clients.timeoutSeconds");
         List clientsTests = config.getList("clients.tests");
-        
+
         if( clientsIpPort.size() != clientsSSHUsername.size() || 
             clientsIpPort.size() != clientsSSHPassword.size() || 
             clientsIpPort.size() != clientsSSHRunningParams.size() ) {
@@ -601,6 +608,19 @@ public class MachineManager
             }
             // store this client 
             this.addNewClient(c);
+        }
+
+        String[] testsPropertyFileNames = config.getString("clients.tests").split("\\s+");
+        for(String name : testsPropertyFileNames) {
+            String nameWithExtension = name + ".properties";
+            Configuration testConfig = new PropertiesConfiguration(nameWithExtension);
+            String serverType = testConfig.getString("server.type");
+            String[] serverModes = testConfig.getString("server.mode").split("\\s+");
+            int testNum = testConfig.getInt("test.num");
+            String[] requestNum = testConfig.getString("test.request.num").split("\\s+");
+            String[] delays = testConfig.getString("test.delays").split("\\s+");
+            int numThreads = testConfig.getInt("test.threads.num");
+            tests.add(new TestParams(serverType, serverModes, testNum, requestNum, delays, numThreads));
         }
     }
     
@@ -802,7 +822,7 @@ public class MachineManager
      * @throws TransportException
      * @throws IOException 
      */
-    public void startServer() throws TransportException, IOException { 
+    public void startServer() throws TransportException, IOException, InterruptedException {
         server.runServerRemotely(sshClients.get(0));
     }
     
@@ -811,7 +831,7 @@ public class MachineManager
      * @throws TransportException
      * @throws IOException 
      */
-    public void startAllClients() throws TransportException, IOException { 
+    public void startAllClients() throws TransportException, IOException, InterruptedException {
         for(Iterator it=clients.iterator(); it.hasNext(); ) { 
             Client c = (Client)it.next();
             c.runClientRemotely(this.server, sshClients.get(c.getId()+1));
