@@ -188,7 +188,7 @@ public class Server extends Machine
      * @throws IOException 
      */
     public int runServerRemotely(SSHClient ssh_client) 
-            throws TransportException, IOException, InterruptedException { 
+            throws TransportException, IOException, InterruptedException {
         int r = SSHCommands.startServerProgram(this, ssh_client);
         if( r != 0 ) { 
             System.out.println("[ERROR] Server could not be properly started! "
