@@ -27,6 +27,7 @@
 package org.jboss.server.xnio3;
 
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -63,8 +64,8 @@ public abstract class XnioServer extends AbstractServer {
 	 * 
 	 * @param port
 	 */
-	public XnioServer(int port) {
-		super(port);
+	public XnioServer(Inet4Address addr, int port) {
+		super(addr, port);
 	}
 
 	/*

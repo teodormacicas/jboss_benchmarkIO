@@ -26,18 +26,16 @@ public class Client extends Machine
     // set here the name of the tests to be run 
     private List<String> tests;
     
-    public Client(String ipAddress, int port, String sshUsername, 
-            String sshPassword, Integer id) 
+    public Client(String ipAddress, int port, String sshUsername, Integer id) 
             throws WrongIpAddressException, WrongPortNumberException {
         super();
         this.setIpAddress(ipAddress);
         this.setPort(port);
         this.setSSHUsername(sshUsername);
-        this.setSSHPassword(sshPassword);
         this.tests = new ArrayList<String>();
         this.serverIpAddress = "0.0.0.0";
         this.serverPort = 0;
-        // save here some default values
+        // save here some DEFAULT values
         this.noThreads = 1;
         this.delay = 1000;
         this.noReq = 1;
@@ -271,11 +269,11 @@ public class Client extends Machine
      */
     public void deletePreviousRemoteMessages(SSHClient ssh_client) 
             throws TransportException, IOException { 
-        SSHCommands.deleteRemoteFile(this, "*"+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_THREADS_SYNCH, 
+        SSHCommands.deleteRemoteFile(this, this.getWorkingDirectory()+"/*"+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_THREADS_SYNCH, 
                 ssh_client);
-        SSHCommands.deleteRemoteFile(this, "*"+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_START_SENDING_REQUESTS,
+        SSHCommands.deleteRemoteFile(this, this.getWorkingDirectory()+"/*"+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_START_SENDING_REQUESTS,
                 ssh_client);
-        SSHCommands.deleteRemoteFile(this, "*"+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_FINISHED,
+        SSHCommands.deleteRemoteFile(this, this.getWorkingDirectory()+"/*"+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_FINISHED,
                 ssh_client);
     }
     
@@ -287,7 +285,7 @@ public class Client extends Machine
      * @throws IOException 
      */
     public int runClientRemotely(Server server, SSHClient ssh_client) 
-            throws TransportException, IOException { 
+            throws TransportException, IOException, InterruptedException { 
         int r = SSHCommands.startClientProgram(this, server, ssh_client);
         if( r != 0 ) { 
             System.out.println("[ERROR] Client could not be properly started! "

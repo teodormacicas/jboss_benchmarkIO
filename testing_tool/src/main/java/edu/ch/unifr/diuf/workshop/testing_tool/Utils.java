@@ -1,5 +1,6 @@
 package edu.ch.unifr.diuf.workshop.testing_tool;
 
+import java.io.File;
 import java.util.regex.Pattern;
 import java.util.UUID;
 
@@ -31,8 +32,6 @@ public class Utils
     public static final String CLIENT_REMOTE_FILENAME_SUFFIX_THREADS_SYNCH = "-threads-are-synched";
     public static final String CLIENT_REMOTE_FILENAME_SUFFIX_START_SENDING_REQUESTS = "-start-sending-requests";
     public static final String CLIENT_REMOTE_FILENAME_SUFFIX_FINISHED = "-finished";
-
-    private static int TEST_NUM = 0;
     
     public static boolean validateIpAddress(String ipAddress) {
         final Pattern IP_PATTERN = Pattern.compile(
@@ -70,39 +69,39 @@ public class Utils
     
     public static String getClientProgramRemoteFilename(Client c) { 
         //return Utils.CLIENT_PROGRAM_REMOTE_BASENAME+"-"+c.getUUID()+".jar";
-        return Utils.CLIENT_PROGRAM_REMOTE_FILENAME;
+        return c.getWorkingDirectory()+"/"+Utils.CLIENT_PROGRAM_REMOTE_FILENAME;
     }
     
     public static String getServerProgramRemoteFilename(Server s) { 
-        return Utils.SERVER_PROGRAM_REMOTE_FILENAME;
+        return s.getWorkingDirectory()+"/"+Utils.SERVER_PROGRAM_REMOTE_FILENAME;
     }
     
     public static String getClientLogRemoteFilename(Machine c) {
-        return "log-"+c.getUUID()+".data";
+        return c.getWorkingDirectory()+"/log-"+c.getUUID()+".data";
     }
     
-    public static String getClientLocalFilename(int no_c, int testNum) {
-        return "log-client"+no_c+ "-" + testNum + ".data";
+    public static String getClientLocalFilename(Client c, int no_c, int testNum) {
+        return c.getWorkingDirectory()+"/log-client"+no_c+ "-" + testNum + ".data";
     }
     
     public static String getServerLogRemoteFilename(Machine s) {
-        return "log-"+s.getIpAddress()+"-"+s.getPort()+".data";
+        return s.getWorkingDirectory()+"/log-"+s.getIpAddress()+"-"+s.getPort()+".data";
     }
     
-    public static String getServerLocalFilename(int testNum) {
-        return  "log-server" + testNum + ".data";
+    public static String getServerLocalFilename(Machine s, int testNum) {
+        return s.getWorkingDirectory()+"/log-server" + testNum + ".data";
     }
     
     public static String getClientRemoteSynchThreadsFilename(Client c) {
-        return c.getUUID()+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_THREADS_SYNCH;
+        return c.getWorkingDirectory()+"/"+c.getUUID()+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_THREADS_SYNCH;
     }
     
     public static String getClientRemoteStartRequestsFilename(Client c) {
-        return c.getUUID()+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_START_SENDING_REQUESTS;
+        return c.getWorkingDirectory()+"/"+c.getUUID()+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_START_SENDING_REQUESTS;
     }
     
     public static String getClientRemoteDoneFilename(Client c) {
-        return c.getUUID()+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_FINISHED;
+        return c.getWorkingDirectory()+"/"+c.getUUID()+Utils.CLIENT_REMOTE_FILENAME_SUFFIX_FINISHED;
     }
 
     public static boolean validateServerTypes(String serverType) { 

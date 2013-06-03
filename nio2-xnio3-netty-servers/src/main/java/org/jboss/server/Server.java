@@ -27,6 +27,8 @@
 package org.jboss.server;
 
 import java.lang.management.ManagementFactory;
+import java.net.Inet4Address;
+import java.net.UnknownHostException;
 import org.jboss.logging.Logger;
 
 /**
@@ -42,13 +44,13 @@ public abstract class Server {
 	 *
 	 */
 	public static final int DEFAULT_SERVER_PORT = 8080;
+        public static Inet4Address DEFAULT_LISTEN_ADDRESS;
 	public static final Logger LOG = Logger.getLogger(Server.class);
 
 	/**
 	 * Create a new instance of {@code Server}
 	 */
 	public Server() {
-		// TODO Auto-generated constructor stub
 	}
 
 	/**
@@ -57,13 +59,16 @@ public abstract class Server {
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		if (args.length < 2) {
+                DEFAULT_LISTEN_ADDRESS = (Inet4Address) Inet4Address.getLocalHost();
+		if (args.length < 3) {
 			System.err.println("Usage: java " + Server.class.getName() + " type mode [port]\n");
 			System.err.println("  --> type: xnio, nio or netty (Allowed values: \"xnio3\", \"nio2\" and \"netty\")");
 			System.err.print("  --> mode: the channel processing mode, i.e, sync/async (");
 			System.err.println("Allowed values: \"sync\" or \"async\"; Netty is always asynch)");
 			System.err.println("  --> port: the server port number to which the server channel will bind.");
-			System.err.println("            Default value: 8080");
+			System.err.println("            Default value: " + DEFAULT_SERVER_PORT);
+                        System.err.println("  --> listen address: the server ip address to which the server channel will bind.");
+			System.err.println("            Default value: " + DEFAULT_LISTEN_ADDRESS.toString());
 			System.out.println();
 			System.exit(-1);
 		}
@@ -77,6 +82,16 @@ public abstract class Server {
 				LOG.infov("Using the default port number {0}", port);
 			}
 		}
+                
+                Inet4Address addr = DEFAULT_LISTEN_ADDRESS;
+		if (args.length >= 4) {
+			try {
+				addr = (Inet4Address) Inet4Address.getByName(args[3]);
+			} catch (Throwable e) {
+				LOG.errorv("Invalid listen address format: {0}", args[3]);
+				LOG.infov("Using the default listen address {0}", addr);
+			}
+		}
 
                 //IMPORTANT FOR TESTING TOOL; DO NOT DELETE!
                 String PID = ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
@@ -85,10 +100,10 @@ public abstract class Server {
                 
 		switch (args[0]) {
 			case "nio2":
-				org.jboss.server.nio2.MainServer.run(args[1], port);
+				org.jboss.server.nio2.MainServer.run(args[1], addr, port);
 				break;
 			case "xnio3":
-				org.jboss.server.xnio3.MainServer.run(args[1], port);
+				org.jboss.server.xnio3.MainServer.run(args[1], addr, port);
 				break;
                         case "netty":
                                 if( args[1].equals("sync") ) { 

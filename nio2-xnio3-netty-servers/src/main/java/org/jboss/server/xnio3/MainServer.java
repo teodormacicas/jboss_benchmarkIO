@@ -26,6 +26,7 @@
 
 package org.jboss.server.xnio3;
 
+import java.net.Inet4Address;
 import org.jboss.server.xnio3.async.AsyncServer;
 import org.jboss.server.xnio3.sync.SyncServer;
 
@@ -47,14 +48,14 @@ public class MainServer {
 	 *            the server port number
 	 * @throws Exception
 	 */
-	public static void run(String mode, int port) throws Exception {
+	public static void run(String mode, Inet4Address addr, int port) throws Exception {
 		Runnable target = null;
 		switch (mode) {
 			case "sync":
-				target = new SyncServer(port);
+				target = new SyncServer(addr, port);
 				break;
 			case "async":
-				target = new AsyncServer(port);
+				target = new AsyncServer(addr, port);
 				break;
 
 			default:

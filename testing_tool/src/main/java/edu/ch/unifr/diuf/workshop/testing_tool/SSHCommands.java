@@ -8,9 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import net.schmizz.sshj.transport.TransportException;
-import net.schmizz.sshj.transport.random.BouncyCastleRandom;
-import net.schmizz.sshj.transport.random.JCERandom;
-import net.schmizz.sshj.transport.random.SingletonRandomFactory;
 
 /** This examples demonstrates how a remote command can be executed. */
 public class SSHCommands 
@@ -170,7 +167,7 @@ public class SSHCommands
         try {
             StringBuilder sb = new StringBuilder();
             sb.append("java -jar "); 
-            sb.append(Utils.CLIENT_PROGRAM_REMOTE_FILENAME);
+            sb.append(Utils.getClientProgramRemoteFilename(client));
             // flag for distributed mode enabled (to enable the synch mechanism via files)
             sb.append(" yes ");  
             sb.append(server.getIpAddress());
@@ -185,6 +182,8 @@ public class SSHCommands
             sb.append(client.getDelay());
             sb.append(" ");
             sb.append(client.getNoReq());
+            sb.append(" "); 
+            sb.append(client.getWorkingDirectory());
             // output to a log file 
             sb.append(" &> ");
             sb.append(Utils.getClientLogRemoteFilename(client));
@@ -216,13 +215,15 @@ public class SSHCommands
         try {
             StringBuilder sb = new StringBuilder();
             sb.append("java -jar "); 
-            sb.append(Utils.SERVER_PROGRAM_REMOTE_FILENAME);
+            sb.append(Utils.getServerProgramRemoteFilename(server));
             sb.append(" ");
             sb.append(server.getServerType());
             sb.append(" ");
             sb.append(server.getServerMode());
             sb.append(" ");
             sb.append(server.getServerHttpPort());
+            sb.append(" ");
+            sb.append(server.getServerHTTPListenAddress());
             sb.append(" ");
             // output to a log file 
             sb.append(" &> ");
@@ -410,4 +411,31 @@ public class SSHCommands
             session.close();
         }
     }   
+    
+    /**
+     * 
+     * @param machine
+     * @param remoteDirectory
+     * @param ssh
+     * @return
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public static int checkIfRemoteDirIsWritable(Machine machine, String remoteDirectory,
+            SSHClient ssh) throws TransportException, IOException {
+        final Session session = ssh.startSession();
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append("test -w ");
+            sb.append(remoteDirectory);
+
+            final Command cmd = session.exec(sb.toString());
+            cmd.join();
+            // if this is 0, then the given remote directory is writable
+            return cmd.getExitStatus();
+        } finally {
+            // whatever happens, do not forget to close the session
+            session.close();
+        }
+    } 
 }

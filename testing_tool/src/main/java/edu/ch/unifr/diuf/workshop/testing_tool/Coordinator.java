@@ -27,7 +27,6 @@ public class Coordinator
         try {
             System.out.println("Parsing properties file ...");
             mm.parsePropertiesFile();
-            mm.createSSHClients();
         }
         catch( WrongIpAddressException|WrongPortNumberException|ClientNotProperlyInitException ex ) {
             LOGGER.log(Level.SEVERE, "[EXCEPTION] Setting up a machine.", ex);
@@ -42,8 +41,20 @@ public class Coordinator
                     + " local program could not be found.", ex5);
             System.exit(5);
         }
+        catch( UnwritableWorkingDirectoryException ex6 ) { 
+            LOGGER.log(Level.SEVERE, "[EXCEPTION] Either working directory of the server "
+                    + " or of a client is not writable.", ex6);
+            System.exit(56);
+        }
+        catch( Exception ex7 ) { 
+            LOGGER.log(Level.SEVERE, "[EXCEPTION] ", ex7);
+            System.exit(56);
+        }
         // print the machines that have been created according to the properties file
         System.out.println(mm.printMachines());
+        
+        System.out.println("[INFO] Create the ssh clients for current thread ...");
+        mm.createSSHClients();
         
         // are both server and clients set up?
         if( ! mm.checkIfClientAndServerSet() ) { 
@@ -58,23 +69,6 @@ public class Coordinator
                     + "more probably they can reach other.");
             System.exit(7);
         } 
-       
-       /* 
-        // JUST FOR TESTING
-        System.out.println("Client 0 ping server ... ");
-        start = System.currentTimeMillis();
-        try {
-            int r = SSHCommands.clientPingServer(mm.getClientNo(0));
-        } catch (TransportException ex) {
-            ex.printStackTrace();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        System.out.println("Client 0 ping server DONE in:  " + (System.currentTimeMillis()-start));
-        if( 1 == 1 ) { 
-            System.exit(1);
-        }*/       
-        
         
         System.out.println("[INFO] Checking if all clients can ping the server ...");
         try {
@@ -94,8 +88,8 @@ public class Coordinator
             System.exit(8);
         }
         System.out.println("[INFO] All clients have network connection with server.");
-        
-        // delete also local .data files
+
+        // delete local .data files
         try {
             Runtime.getRuntime().exec("/bin/bash rm log*.data").waitFor();
         } catch (IOException|InterruptedException ex) {
@@ -138,7 +132,6 @@ public class Coordinator
             ex.printStackTrace();
         }
         System.out.println("[INFO] ALL machines checked and they are in a runnable state.");
-                
         System.out.println("[INFO] Starting the threads for checking connectivity, status and running PIDs. "
                             + "NOTE: if public-key auth is used then this may take some time ...");
         // now start all the other thread as the connectity at this point should be ok
@@ -285,6 +278,9 @@ public class Coordinator
         private void runClients(MachineManager mm) throws RerunTestException {
             try {
                 System.out.println("[INFO] Deleting any data from previous run ...");
+                // delete server and client logs 
+                mm.deleteServerLogs();
+                mm.deleteClientLogs();
                 // delete from each client the files that might have been used before for
                 // sending different messages
                 mm.deleteClientPreviouslyMessages();

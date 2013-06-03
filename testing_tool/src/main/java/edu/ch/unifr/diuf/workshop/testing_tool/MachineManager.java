@@ -462,7 +462,8 @@ public class MachineManager
      * @throws FileNotFoundException
      */
     public void parsePropertiesFile() throws ConfigurationException, 
-            WrongIpAddressException, WrongPortNumberException, ClientNotProperlyInitException, FileNotFoundException { 
+            WrongIpAddressException, WrongPortNumberException, ClientNotProperlyInitException, 
+            FileNotFoundException, UnwritableWorkingDirectoryException, TransportException, IOException { 
         Configuration config = new PropertiesConfiguration(
                 Utils.PROPERTIES_FILENAME);
         
@@ -478,12 +479,14 @@ public class MachineManager
         
         // get server info 
         String serverDataFolder = config.getString("server.dataFolder");
-        String serverSSHIpPort = config.getString("server.sshIpPort");
-        String serverSSHUsername = config.getString("server.sshUsername");
-        String serverSSHPassword = config.getString("server.sshPassword");
-        String serverRunningParams = config.getString("server.runningParams");
+        String serverSSHUserHost = config.getString("server.sshUserHostPort");
+        String serverSSHUsername = serverSSHUserHost.substring(0, serverSSHUserHost.indexOf("@"));
+        String serverSSHIpPort = serverSSHUserHost.substring(serverSSHUserHost.indexOf("@")+1);
+        String serverListenHostPort = config.getString("server.listenHostPort");
         String serverFaultTolerant = config.getString("server.faultTolerant");
         String serverRestartAttempts = config.getString("server.restartAttempts");
+        String serverWorkingDir = config.getString("server.workingDirectory");
+        //String serverSSHPassword = config.getString("server.sshPassword");
         StringTokenizer st = new StringTokenizer(serverSSHIpPort, ":");
         if( st.countTokens() != 2 ) { 
             LOGGER.severe("Parsing error of server.sshIpPort. Please pass data "
@@ -494,29 +497,22 @@ public class MachineManager
         }
         // create the server here
         this.server = new Server(st.nextToken(), Integer.valueOf(st.nextToken()), 
-                serverSSHUsername, serverSSHPassword);
-        st = new StringTokenizer(serverRunningParams, " "); 
-        if( st.countTokens() != 3 ) {
-            LOGGER.severe("Parsing error of server.runningParams. Please check the "
-                    + "right format in the properties file and re-run this.");
-            throw new ConfigurationException("Parsing error of server.runningParams. Please check the "
-                    + "right format in the properties file and re-run this.");
+                serverSSHUsername);
+        st = new StringTokenizer(serverListenHostPort, ":");
+        if( st.countTokens() != 2 ) {
+            LOGGER.severe("Parsing error of server.listenHostPort. Please pass data "
+                    + "using the pattern IP:PORT and nothing more. " + serverSSHIpPort);
+            throw new ConfigurationException("Parsing error of server.listenHostPort. "
+                    + "Please pass data using the pattern IP:PORT and nothing more. " 
+                    + serverSSHIpPort);
         }
-        try {
-            this.server.setServerType(st.nextToken());
-        } catch( WrongServerTypeException ex ){
-            LOGGER.severe(ex.getMessage());
-            throw new ConfigurationException(ex.getMessage());
-            
-        }
-        try {
-            this.server.setServerMode(st.nextToken()); 
-        } catch( WrongServerModeException ex ) {
-            LOGGER.severe(ex.getMessage());
-            throw new ConfigurationException(ex.getMessage());
-        }
-        this.server.setDataFolderPath(serverDataFolder);
+        this.server.setServerHTTPListenAddress(st.nextToken());
         this.server.setServerHttpPort(Integer.valueOf(st.nextToken()));
+       /* if( SSHCommands.checkIfRemoteDirIsWritable(server, serverWorkingDir, sshClients.get(0)) != 0 )
+            throw new UnwritableWorkingDirectoryException(serverWorkingDir);
+        else*/
+        this.server.setWorkingDirectory(serverWorkingDir);
+        this.server.setDataFolderPath(serverDataFolder);
         this.server.setFaultTolerant(serverFaultTolerant.trim());
         if( Integer.valueOf(serverRestartAttempts) < 0 ) {
             LOGGER.severe("Parsing error of server.restartAttepmts. Please check the "
@@ -524,7 +520,7 @@ public class MachineManager
             throw new ConfigurationException("Parsing error of server.restartAttempts. "
                     + "Please check the right format in the properties file and re-run this.");
         }
-        this.server.setRestartAttempts(Integer.valueOf(serverRestartAttempts));
+        this.server.setRestartAttempts(Integer.valueOf(serverRestartAttempts));        
         
         // get clients program filename 
         Utils.CLIENT_PROGRAM_LOCAL_FILENAME = config.getString("clients.programJarFile").trim();
@@ -536,10 +532,8 @@ public class MachineManager
         }
         
         // this is used by the clients 
-        List clientsIpPort = config.getList("clients.sshIpPort");
-        List clientsSSHUsername = config.getList("clients.sshUsername");
-        List clientsSSHPassword = config.getList("clients.sshPassword");
-        List clientsSSHRunningParams = config.getList("clients.runningParams");
+        List clientsUserHostPort = config.getList("clients.sshUserHostPort");
+        String clientsWorkingDir = config.getString("clients.workingDirectory");
         String clientsRestartCondition = config.getString("clients.restartConditionPropThreadsDead");
         double clients_rest_cond = Double.valueOf(clientsRestartCondition);
         if( clients_rest_cond < 0 || clients_rest_cond > 1 ) { 
@@ -551,50 +545,29 @@ public class MachineManager
         String clientsTimeoutSec = config.getString("clients.timeoutSeconds");
         List clientsTests = config.getList("clients.tests");
         
-        if( clientsIpPort.size() != clientsSSHUsername.size() || 
-            clientsIpPort.size() != clientsSSHPassword.size() || 
-            clientsIpPort.size() != clientsSSHRunningParams.size() ) {
-            LOGGER.severe("Please give sshIpPort, sshUsername, sshPassword and "
-                    + "sshRunningParams parameters for each client.");
-            throw new ConfigurationException("Please give sshIpPort, sshUsername, sshPassword and "
-                    + "sshRunningParams parameters for each client.");
-        }
-        
         // iterate the list and create the clients
         int counter = -1;
-        for(Iterator it=clientsIpPort.iterator(); it.hasNext(); ) {
+        for(Iterator it=clientsUserHostPort.iterator(); it.hasNext(); ) {
             ++counter;
-            String client_address = (String)it.next();
-            String client_ssh_username = (String)clientsSSHUsername.get(counter);
-            String client_ssh_password = (String)clientsSSHPassword.get(counter);
-            String client_running_params = (String)clientsSSHRunningParams.get(counter);
-            
-            st = new StringTokenizer(client_address, ":");
+            String client_host = (String)it.next();
+            String clientSSHUsername = client_host.substring(0, client_host.indexOf("@"));
+            String clientSSHIpPort = client_host.substring(client_host.indexOf("@")+1);
+            st = new StringTokenizer(clientSSHIpPort, ":");
             if( st.countTokens() > 2 ) { 
-                LOGGER.severe("Parsing error of client.sshIpPort. Please pass data "
-                    + "using the pattern IP:PORT and nothing more. " + client_address);
-                throw new ConfigurationException("Parsing error of server.sshIpPort. "
-                    + "Please pass data using the pattern IP:PORT and nothing more. "
-                    + client_address);
+                LOGGER.severe("Parsing error of client.sshUserHostPort. Please pass data "
+                    + "using the pattern username@IP:PORT. " + client_host);
+                throw new ConfigurationException("Parsing error of client.sshUserHostPort. "
+                    + "Please pass data using the pattern username@IP:PORT. "
+                    + client_host);
             }
             Client c = new Client(st.nextToken(), Integer.valueOf(st.nextToken()), 
-                    client_ssh_username, client_ssh_password, counter);
+                    clientSSHUsername, counter);
             // set server info 
             c.setServerInfo(server.getIpAddress(), server.getServerHttpPort());
-            // set running parameters
-            st = new StringTokenizer(client_running_params, " ");
-            if( st.countTokens() != 3 ) { 
-                LOGGER.severe("Please pass all three running parameters for "
-                        + "client with IP address " + c.getIpAddress());
-                throw new ConfigurationException("Please pass all three running "
-                        + "parameters for client with IP address " + c.getIpAddress());
-            }
-            // add running params
-            c.setNoThreads(Integer.valueOf(st.nextToken()));
-            c.setDelay(Integer.valueOf(st.nextToken()));
-            c.setNoReq(Integer.valueOf(st.nextToken()));
             c.setRestartConditionPropThreadsDead(clients_rest_cond);
             c.setTimeoutSec(Integer.valueOf(clientsTimeoutSec));
+            c.setWorkingDirectory(clientsWorkingDir);
+            
             // add tests
             for( Iterator it2=clientsTests.iterator(); it2.hasNext(); ) {
                 c.addNewTest((String)it2.next());
@@ -741,7 +714,8 @@ public class MachineManager
      */
     public void uploadProgramToServer() 
             throws FileNotFoundException, IOException {        
-        server.uploadProgram(Utils.SERVER_PROGRAM_LOCAL_FILENAME, sshClients.get(0));
+        server.uploadProgram(Utils.SERVER_PROGRAM_LOCAL_FILENAME, 
+                sshClients.get(0));
         // test the remote file exists
         int r = SSHCommands.testRemoteFileExists(server, 
                 Utils.getServerProgramRemoteFilename(server), sshClients.get(0));
@@ -753,7 +727,8 @@ public class MachineManager
                         server.getIpAddress() + "." + " Error code: " + r);
         
         // make remote dir 'data' to copy all the files 
-        SSHCommands.createRemoteFolder(server, "data/", sshClients.get(0));
+        SSHCommands.createRemoteFolder(server, server.getWorkingDirectory()+"/data/", 
+                sshClients.get(0));
         
         String files;
         File folder = new File(server.getDataFolderPath());
@@ -763,7 +738,7 @@ public class MachineManager
                 files = listOfFiles[i].getName();
                 // and now upload the data folder as well 
                 SSHCommands.uploadRemoteFile(server, server.getDataFolderPath()+"/"+files, 
-                        "data/"+files, sshClients.get(0));
+                        server.getWorkingDirectory()+"/data/"+files, sshClients.get(0));
             }
         }
     }
@@ -774,7 +749,8 @@ public class MachineManager
      * @throws IOException 
      */
     public void deleteServerDataFiles() throws TransportException, IOException {
-        SSHCommands.deleteRemoteFile(server, "data/", sshClients.get(0));
+        SSHCommands.deleteRemoteFile(server, server.getWorkingDirectory()+"/data/", 
+                sshClients.get(0));
     }
     
     /**
@@ -802,7 +778,7 @@ public class MachineManager
      * @throws TransportException
      * @throws IOException 
      */
-    public void startServer() throws TransportException, IOException { 
+    public void startServer() throws TransportException, IOException, InterruptedException { 
         server.runServerRemotely(sshClients.get(0));
     }
     
@@ -811,7 +787,7 @@ public class MachineManager
      * @throws TransportException
      * @throws IOException 
      */
-    public void startAllClients() throws TransportException, IOException { 
+    public void startAllClients() throws TransportException, IOException, InterruptedException { 
         for(Iterator it=clients.iterator(); it.hasNext(); ) { 
             Client c = (Client)it.next();
             c.runClientRemotely(this.server, sshClients.get(c.getId()+1));
@@ -917,14 +893,14 @@ public class MachineManager
      */
     public void downloadAllLogs() throws IOException { 
         SSHCommands.downloadRemoteFile(server, Utils.getServerLogRemoteFilename(server),
-                Utils.getServerLocalFilename(testNum), sshClients.get(0));
-        System.out.println("[INFO] Server log file " + Utils.getServerLocalFilename(testNum) +
+                Utils.getServerLocalFilename(server,testNum), sshClients.get(0));
+        System.out.println("[INFO] Server log file " + Utils.getServerLocalFilename(server,testNum) +
                 " is locally downloaded. Please check it." );
         int counter=-1;
         for(Iterator it=clients.iterator(); it.hasNext(); ) { 
             Client c = (Client)it.next();
             SSHCommands.downloadRemoteFile(c, Utils.getClientLogRemoteFilename(c),
-                    Utils.getClientLocalFilename(++counter, testNum), 
+                    Utils.getClientLocalFilename(c,++counter, testNum), 
                     sshClients.get(c.getId()+1));
         }
         testNum++;
@@ -976,9 +952,31 @@ public class MachineManager
         for(Iterator it=clients.iterator(); it.hasNext(); ) {
             Client c = (Client)it.next();
             c.deletePreviousRemoteMessages(sshClients.get(c.getId()+1));
-            // also the logs
-            SSHCommands.deleteRemoteFile(c, "log*.data", sshClients.get(c.getId()+1));
         }
+    }
+    
+    /**
+     * 
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public void deleteClientLogs() throws TransportException, IOException {
+        for(Iterator it=clients.iterator(); it.hasNext(); ) {
+            Client c = (Client)it.next();
+            SSHCommands.deleteRemoteFile(c, c.getWorkingDirectory()+"/log*.data", 
+                    sshClients.get(c.getId()+1));
+        }
+    }
+    
+    /**
+     * 
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public void deleteServerLogs() 
+            throws TransportException, IOException { 
+        SSHCommands.deleteRemoteFile(server, server.getWorkingDirectory()+"/log*.data", 
+                sshClients.get(0));
     }
     
     /**
@@ -990,37 +988,38 @@ public class MachineManager
         StringBuilder sb = new StringBuilder();
         
         sb.append("\nServer: "); 
-        sb.append("\n\t address: ");
-        sb.append(server.getIpAddress()).append(":").append(server.getPort());
         sb.append("\n\t ssh info: ");
-        sb.append(server.getSSHUsername()).append(" ").append(server.getSSHPassword());
-        sb.append("\n\t running params: "); 
-        sb.append(server.getServerType()).append(" ");
-        sb.append(server.getServerMode()).append(" ");
+        sb.append(server.getSSHUsername()).append("@");
+        sb.append(server.getIpAddress()).append(":").append(server.getPort());
+        sb.append("\n\t http server info: "); 
+        sb.append(server.getServerHTTPListenAddress()).append(":");
         sb.append(server.getServerHttpPort());
         sb.append("\n\t fault tolerance: "); 
         sb.append(server.getFaultTolerant()).append(" ");
         sb.append(server.getRestartAttempts()).append("retrials ");
+        sb.append("\n\t working directory: "); 
+        sb.append(server.getWorkingDirectory());
         sb.append("\nClients:");
         
         int counter = -1;
         for(Iterator it=clients.iterator(); it.hasNext(); ) {
             Client c = (Client)it.next();
             ++counter;
-            sb.append("\n\tClient ").append(counter);
-            sb.append("\n\t\t address:");
-            sb.append(c.getIpAddress()).append(":").append(c.getPort());
+            sb.append("\n\tClient ").append(counter); 
             sb.append("\n\t\t ssh info: ");
-            sb.append(c.getSSHUsername()).append(" ").append(c.getSSHPassword());
+            sb.append(c.getSSHUsername()).append("@");
+            sb.append(c.getIpAddress()).append(":").append(c.getPort());
             sb.append("\n\t\t server info: ");
             sb.append(c.getServerIpAddress()).append(" ").append(c.getServerPort());
-            sb.append("\n\t\t running params: "); 
-            sb.append(c.getNoThreads() + " " + c.getDelay() + " " + c.getNoReq());
+            sb.append("\n\t\t working directory: "); 
+            sb.append(c.getWorkingDirectory());
             sb.append("\n\t\t running tests: "); 
             sb.append(c.testsToString());
             sb.append("\n\t\t fault tolerance: "); 
             sb.append(c.getRestartConditionPropThreadsDead()).append(" percentage ");
             sb.append("of needed dead clients to restart test");
+            sb.append("\n\t\t fault tolerance timeout: after "); 
+            sb.append(c.getTimeoutSec()).append("seconds of no log activity client is considered failed");
         }
         sb.append("\n");
         return sb.toString();

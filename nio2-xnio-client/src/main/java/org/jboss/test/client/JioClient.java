@@ -330,7 +330,7 @@ public class JioClient extends Thread {
             
 		if (args.length < 3) {
 			System.err.println("Usage: java " + JioClient.class.getName()
-					+ "distributedSynch hostname port [n] [delay] [nReq]");
+					+ "distributedSynch hostname port [clientID] [n] [delay] [nReq] [wDir]");
                         System.err.println("\tdistributedMode: Set 'yes' if synchronization with other remote clients is desired.");
 			System.err.println("\thostname: The server IP/hostname.");
 			System.err.println("\tport: The server port number.");
@@ -338,6 +338,7 @@ public class JioClient extends Thread {
 			System.err.println("\tn: The number of threads. (default is 100)");
 			System.err.println("\tdelay: The delay between requests. (default is 1000ms)");
 			System.err.println("\tnReq: The total number of requests. (default is 1000000)");
+                        System.err.println("\twDir: The working directory. (default is ~/)");
 			System.exit(1);
 		}
 		
@@ -351,6 +352,7 @@ public class JioClient extends Thread {
 		int port = Integer.parseInt(args[2]);
                 String clientID = args[3];
 		int n = 100, delay = DEFAULT_DELAY, nReq = DEFAULT_NREQ;
+                String wDir = "";
 		if (args.length > 4) {
 			try {
 				n = Integer.parseInt(args[4]);
@@ -371,11 +373,18 @@ public class JioClient extends Thread {
 						throw new IllegalArgumentException(
 								"Negative value for number of requests: " + nReq);
 					}
-					
 					if (nReq < n) {
 						System.err.println("ERROR: you should have nReq >= n");
 						System.err.println("Adjusting nReq to " + n);
 						nReq = n;
+					}
+				}
+                                if (args.length > 7) {
+					wDir = args[7];
+					if (! new File(wDir).exists() || 
+                                            (new File(wDir).exists() && !new File(wDir).isDirectory())) {
+						throw new IllegalArgumentException(
+								"Invalid working directory: " + wDir);
 					}
 				}
 			} catch (Exception exp) {
@@ -427,11 +436,11 @@ public class JioClient extends Thread {
                     // now, create a local file that would signal to the coordinator that 
                     // this client reached the point where the threads are synched
                     // IMPORTANT: please be sure that the testing tool uses the same name !!!
-                    String synch_threads_filename = clientID+"-threads-are-synched";
+                    String synch_threads_filename = wDir+"/"+clientID+"-threads-are-synched";
                     new File(synch_threads_filename).createNewFile();
 
                     // now, we wait until the coordinator creates another file
-                    String read_to_start_filename = clientID+"-start-sending-requests";
+                    String read_to_start_filename = wDir+"/"+clientID+"-start-sending-requests";
                     while( ! new File(read_to_start_filename).exists() ) {
                         Thread.sleep(50);
                     }
@@ -449,7 +458,7 @@ public class JioClient extends Thread {
 		}
                 
                 // as the threads are finished, signal it again with a new empty file
-                String ready_filename = clientID+"-finished";
+                String ready_filename = wDir+"/"+clientID+"-finished";
                 new File(ready_filename).createNewFile();
 	}
 }

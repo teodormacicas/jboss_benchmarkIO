@@ -26,6 +26,7 @@
 package org.jboss.server.xnio3.async;
 
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.nio.channels.Channel;
 
 import org.jboss.server.xnio3.XnioServer;
@@ -47,8 +48,8 @@ public class AsyncServer extends XnioServer {
 	 * 
 	 * @param port
 	 */
-	public AsyncServer(int port) {
-		super(port);
+	public AsyncServer(Inet4Address addr, int port) {
+		super(addr, port);
 		this.async = true;
 	}
 

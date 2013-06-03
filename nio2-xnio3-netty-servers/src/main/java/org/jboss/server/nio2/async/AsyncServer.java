@@ -26,6 +26,7 @@
 package org.jboss.server.nio2.async;
 
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -47,8 +48,8 @@ public class AsyncServer extends NioServer {
 	/**
 	 * Create a new instance of {@code AsyncServer}
 	 */
-	public AsyncServer(int port) {
-		super(port);
+	public AsyncServer(Inet4Address addr, int port) {
+		super(addr, port);
 		this.async = true;
 	}
 

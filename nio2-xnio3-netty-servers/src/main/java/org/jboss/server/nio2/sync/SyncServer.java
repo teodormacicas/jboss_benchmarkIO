@@ -25,6 +25,7 @@
  */
 package org.jboss.server.nio2.sync;
 
+import java.net.Inet4Address;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -44,8 +45,8 @@ public class SyncServer extends NioServer {
 	/**
 	 * Create a new instance of {@code SyncServer}
 	 */
-	public SyncServer(int port) {
-		super(port);
+	public SyncServer(Inet4Address addr, int port) {
+		super(addr, port);
 	}
 
 	/*

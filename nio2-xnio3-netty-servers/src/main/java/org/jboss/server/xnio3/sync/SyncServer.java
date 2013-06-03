@@ -26,6 +26,7 @@
 package org.jboss.server.xnio3.sync;
 
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.nio.channels.Channel;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -52,8 +53,8 @@ public class SyncServer extends XnioServer {
 	 * 
 	 * @param port
 	 */
-	public SyncServer(int port) {
-		super(port);
+	public SyncServer(Inet4Address addr, int port) {
+		super(addr, port);
 	}
 
 	/*

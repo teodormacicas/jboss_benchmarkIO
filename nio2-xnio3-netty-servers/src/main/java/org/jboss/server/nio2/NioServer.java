@@ -25,6 +25,7 @@
  */
 package org.jboss.server.nio2;
 
+import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
@@ -52,8 +53,8 @@ public abstract class NioServer extends AbstractServer {
 	/**
 	 * Create a new instance of {@code NioServer}
 	 */
-	public NioServer(int port) {
-		super(port);
+	public NioServer(Inet4Address addr, int port) {
+		super(addr, port);
 	}
 
 	/*
@@ -71,7 +72,7 @@ public abstract class NioServer extends AbstractServer {
 			AsynchronousChannelGroup threadGroup = AsynchronousChannelGroup
 					.withThreadPool(executor);
 			try (AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel.open(
-					threadGroup).bind(new InetSocketAddress(port))) {
+					threadGroup).bind(new InetSocketAddress(addr, port))) {
 				boolean running = true;
 				logger.infov("{0} NIO.2 Server started ...", mode);
 

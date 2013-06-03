@@ -57,6 +57,8 @@ public class Machine
     private String sshUsername;
     private String sshPassword;
     
+    private String workingDirectory;
+    
     public Machine() {
         this.UUID = Utils.generateRandomUUID();
         this.ipAddress = "0.0.0.0"; 
@@ -216,6 +218,22 @@ public class Machine
     }
     
     /**
+     * 
+     * @param workingDirectory 
+     */
+    public void setWorkingDirectory(String workingDirectory) {
+        this.workingDirectory = workingDirectory;
+    }
+    
+    /**
+     * 
+     * @return 
+     */
+    public String getWorkingDirectory() {
+        return this.workingDirectory;
+    }
+    
+    /**
      * Checks if an SSH connection is successful. 
      *
      * @param sshClient
@@ -248,7 +266,6 @@ public class Machine
     public boolean clientProperlyCreated() { 
         if( this.ipAddress.equals("0.0.0.0") || 
             this.port == 0 || 
-            this.sshPassword.isEmpty() || 
             this.sshUsername.isEmpty() )  {
             return false;
         }
@@ -282,6 +299,13 @@ class WrongIpAddressException extends Exception
 class WrongPortNumberException extends Exception 
 {
     public WrongPortNumberException(String string) {
+        super(string);
+    }
+}
+
+class UnwritableWorkingDirectoryException extends Exception 
+{
+    public UnwritableWorkingDirectoryException(String string) {
         super(string);
     }
 }

@@ -19,20 +19,26 @@ public class Server extends Machine
      private String serverType; 
      private String serverMode; 
      // this is also used by the clients to know where to connect to
+     private String serverListenIp;
      private int serverPort;
+     
      // if set to 'yes', in case of failure restartAttempts is tried 
      private String faultTolerant;
+     // number of max retrials in case of failure
      private int restartAttempts;
     
-     public Server(String ipAddress, int port, String sshUsername, String sshPassword) 
+     public Server(String ipAddress, int port, String sshUsername) 
             throws WrongIpAddressException, WrongPortNumberException {
         super();
         this.setIpAddress(ipAddress);
         this.setPort(port);
         this.setSSHUsername(sshUsername);
-        this.setSSHPassword(sshPassword);
+        // some default values 
+        this.serverType = "nio2";
+        this.serverMode = "sync";
+        this.serverListenIp = "0.0.0.0";
+        this.serverPort = 8088;
      }
-     
      
      /**
       * 
@@ -44,6 +50,7 @@ public class Server extends Machine
      
      /**
       * 
+      * @return 
       */
      public String getDataFolderPath() { 
          return this.dataFolderPath;
@@ -90,6 +97,27 @@ public class Server extends Machine
          return this.serverMode;
      }
     
+     /**
+      * 
+      * @param ipAddress
+      * @throws WrongIpAddressException 
+      */
+     public void setServerHTTPListenAddress(String ipAddress) throws WrongIpAddressException { 
+         if( Utils.validateIpAddress(ipAddress) )
+               this.serverListenIp = ipAddress;
+        else
+            throw new WrongIpAddressException(ipAddress + " server listen IP address"
+                    + " cannot be set due to validation errors");
+     }
+     
+     /**
+      * 
+      * @return 
+      */
+     public String getServerHTTPListenAddress() { 
+         return this.serverListenIp;
+     }
+     
      /**
       * 
       * @param httpPort
@@ -149,7 +177,7 @@ public class Server extends Machine
       */
     public void uploadProgram(String file, SSHClient ssh_client) 
             throws FileNotFoundException, IOException {
-        this.uploadFile(file, Utils.SERVER_PROGRAM_REMOTE_FILENAME, ssh_client);
+        this.uploadFile(file, Utils.getServerProgramRemoteFilename(this), ssh_client);
     }
     
     /**
@@ -159,7 +187,8 @@ public class Server extends Machine
      * @throws TransportException
      * @throws IOException 
      */
-    public int runServerRemotely(SSHClient ssh_client) throws TransportException, IOException { 
+    public int runServerRemotely(SSHClient ssh_client) 
+            throws TransportException, IOException, InterruptedException { 
         int r = SSHCommands.startServerProgram(this, ssh_client);
         if( r != 0 ) { 
             System.out.println("[ERROR] Server could not be properly started! "
