@@ -585,7 +585,7 @@ public class MachineManager
 
         String[] testsPropertyFileNames = config.getString("clients.tests").split("\\s+");
         for(String name : testsPropertyFileNames) {
-            String nameWithExtension = name + ".properties";
+            String nameWithExtension = "src/main/resources/" +  name + ".properties";
             Configuration testConfig = new PropertiesConfiguration(nameWithExtension);
             String serverType = testConfig.getString("server.type");
             String[] serverModes = testConfig.getString("server.mode").split("\\s+");
@@ -920,7 +920,7 @@ public class MachineManager
         for(Iterator it=clients.iterator(); it.hasNext(); ) { 
             Client c = (Client)it.next();
             SSHCommands.downloadRemoteFile(c, Utils.getClientLogRemoteFilename(c),
-                    Utils.getClientLocalFilename(c,++counter, testNum), 
+                    Utils.getClientLocalFilename(c, ++counter, testNum), 
                     sshClients.get(c.getId()+1));
         }
         testNum++;
@@ -945,6 +945,7 @@ public class MachineManager
             //System.out.println("Join crpt");
             this.crpt.join(4000);
             if( this.ftt != null ) {
+                //System.out.println("Join FTT");
                 this.ftt.setFinished(true);
                 this.ftt.join(4000);
             }
@@ -960,6 +961,15 @@ public class MachineManager
     public void startFaultTolerantThread(Thread testThread) { 
         this.ftt = new FaultTolerantThread(Utils.DELAY_CHECK_FAULT_MS, testThread);
         this.ftt.start();
+    }
+    
+    /**
+     * 
+     * @throws InterruptedException 
+     */
+    public void joinFaultTolerantThread() throws InterruptedException { 
+        this.ftt.setFinished(true);
+        this.ftt.join(4000);
     }
     
     /**

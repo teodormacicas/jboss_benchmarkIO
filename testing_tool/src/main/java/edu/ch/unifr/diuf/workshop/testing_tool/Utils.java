@@ -10,7 +10,7 @@ import java.util.UUID;
  */
 public class Utils 
 {   
-    public static final String PROPERTIES_FILENAME = "server_clients.properties";
+    public static final String PROPERTIES_FILENAME = "src/main/resources/server_clients.properties";
     
     public static final Integer DELAY_CHECK_CONN_MS = 4000;
     public static final Integer DELAY_WRITE_STATUS_MS = 4000;
@@ -81,7 +81,7 @@ public class Utils
     }
     
     public static String getClientLocalFilename(Client c, int no_c, int testNum) {
-        return c.getWorkingDirectory()+"/log-client"+no_c+ "-" + testNum + ".data";
+        return "log-client"+no_c+ "-" + testNum + ".data";
     }
     
     public static String getServerLogRemoteFilename(Machine s) {
@@ -89,7 +89,7 @@ public class Utils
     }
     
     public static String getServerLocalFilename(Machine s, int testNum) {
-        return s.getWorkingDirectory()+"/log-server" + testNum + ".data";
+        return "log-server" + testNum + ".data";
     }
     
     public static String getClientRemoteSynchThreadsFilename(Client c) {

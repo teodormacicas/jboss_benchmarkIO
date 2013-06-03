@@ -176,8 +176,12 @@ public class Coordinator
                 }
             }
         }
-
+        // delete the data files also
+        //mm.deleteServerDataFiles();
+        
+        System.out.println("[INFO] Now join all threads ...");
         mm.joinAllThreads();
+        System.out.println("[INFO] Now disconnect SSH clients and exit ...");
         mm.disconnectSSHClients(mm.getSSHClients());
     }
 
@@ -206,6 +210,7 @@ public class Coordinator
         }
         try {
             rc.join();
+            mm.joinFaultTolerantThread();
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
@@ -323,8 +328,6 @@ public class Coordinator
                     mm.killClients();
                     System.out.println("[INFO] Kill the server ... ");
                     mm.killServer();
-                    // delete the data files also
-                    mm.deleteServerDataFiles();
                 } catch (Exception ex) {
                     Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
                 }
