@@ -4,7 +4,6 @@
  */
 package org.jboss.server.netty.async;
 
-import org.jboss.server.netty.async.HttpStaticFileServerPipelineFactory;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 

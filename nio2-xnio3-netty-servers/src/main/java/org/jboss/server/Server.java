@@ -46,7 +46,8 @@ public abstract class Server {
 	public static final int DEFAULT_SERVER_PORT = 8080;
         public static Inet4Address DEFAULT_LISTEN_ADDRESS;
 	public static final Logger LOG = Logger.getLogger(Server.class);
-
+        public static String workingDirectory;
+        
 	/**
 	 * Create a new instance of {@code Server}
 	 */
@@ -69,6 +70,7 @@ public abstract class Server {
 			System.err.println("            Default value: " + DEFAULT_SERVER_PORT);
                         System.err.println("  --> listen address: the server ip address to which the server channel will bind.");
 			System.err.println("            Default value: " + DEFAULT_LISTEN_ADDRESS.toString());
+                        System.err.println("  --> working directory: the place where the data files are stored ");
 			System.out.println();
 			System.exit(-1);
 		}
@@ -91,6 +93,11 @@ public abstract class Server {
 				LOG.errorv("Invalid listen address format: {0}", args[3]);
 				LOG.infov("Using the default listen address {0}", addr);
 			}
+		}
+                
+                workingDirectory = "./";
+                if (args.length >= 5) {
+                        workingDirectory = args[4];
 		}
 
                 //IMPORTANT FOR TESTING TOOL; DO NOT DELETE!

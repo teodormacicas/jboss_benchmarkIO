@@ -224,18 +224,47 @@ public class SSHCommands
             sb.append(server.getServerHttpPort());
             sb.append(" ");
             sb.append(server.getServerHTTPListenAddress());
+            sb.append(" /");
+            sb.append(server.getWorkingDirectory());
             sb.append(" ");
             // output to a log file 
             sb.append(" &> ");
             sb.append(Utils.getServerLogRemoteFilename(server));
             sb.append(" & ");
-
+            
             //System.out.println("Run command: " + sb.toString());
             final Command cmd = session.exec(sb.toString());
             cmd.join();
             // wait a bit until returning as the server should have enough time to 
             // start and print its PID into the log file (it is checked just after)
             Thread.sleep(2000);
+            return cmd.getExitStatus();
+        } finally {
+            // whatever happens, do not forget to close the session
+            session.close();
+        }
+    }
+    
+    /**
+     * 
+     * @param server
+     * @param ssh
+     * @return
+     * @throws TransportException
+     * @throws IOException
+     * @throws InterruptedException 
+     */
+    public static int startServerTop(Server server, SSHClient ssh) 
+            throws TransportException, IOException, InterruptedException {
+        final Session session = ssh.startSession();
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append("top -b -p ").append(server.getPID());
+            sb.append(" 1> ").append(Utils.getServerLogTopRemoteFilename(server));
+            sb.append(" & ");
+            //System.out.println("Run TOP command: " + sb.toString());
+            final Command cmd = session.exec(sb.toString());
+            cmd.join();
             return cmd.getExitStatus();
         } finally {
             // whatever happens, do not forget to close the session
@@ -259,6 +288,31 @@ public class SSHCommands
             sb.append("kill "); 
             sb.append(machine.getPID());
             //System.out.println("Run command: " + sb.toString());
+            final Command cmd = session.exec(sb.toString());
+            cmd.join();
+            return cmd.getExitStatus();
+        } finally {
+            // whatever happens, do not forget to close the session
+            session.close();
+        }
+    }
+    
+    /**
+     * 
+     * @param machine
+     * @param ssh
+     * @return
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public static int killTopProgram(Machine machine, SSHClient ssh) 
+            throws TransportException, IOException {
+        final Session session = ssh.startSession();
+        try {
+            StringBuilder sb = new StringBuilder();
+            // well, ideally it should kill only the top created by use, not all of them 
+            // but lets do it right now as getting top PID could not be achieved
+            sb.append("pkill top"); 
             final Command cmd = session.exec(sb.toString());
             cmd.join();
             return cmd.getExitStatus();

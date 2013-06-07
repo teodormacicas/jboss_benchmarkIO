@@ -28,6 +28,7 @@ package org.jboss.server.xnio3.async;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import org.jboss.server.Server;
 import org.jboss.server.common.FileLoader;
 import org.xnio.ChannelListener;
 import org.xnio.channels.StreamChannel;
@@ -81,7 +82,7 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
                                 req = req.substring(req.indexOf(" ")+1);
                                 req = req.substring(0, req.indexOf("?"));
                                 //System.out.println("READ BUFFER " + req.substring(1));
-                                
+                                req = Server.workingDirectory + req;
 				// write response to client; remove the leading '/' from filename
 				writeResponse(channel, req.substring(1));
 			}

@@ -866,6 +866,7 @@ public class MachineManager
      */
     public void killServer() throws TransportException, IOException { 
         server.killServer(sshClients.get(0));
+        server.killTop(sshClients.get(0));
     }
     
     /**
@@ -916,6 +917,8 @@ public class MachineManager
                 Utils.getServerLocalFilename(server,testNum), sshClients.get(0));
         System.out.println("[INFO] Server log file " + Utils.getServerLocalFilename(server,testNum) +
                 " is locally downloaded. Please check it." );
+        SSHCommands.downloadRemoteFile(server, Utils.getServerLogTopRemoteFilename(server),
+                Utils.getServerLocalTopFilename(server,testNum), sshClients.get(0));
         int counter=-1;
         for(Iterator it=clients.iterator(); it.hasNext(); ) { 
             Client c = (Client)it.next();

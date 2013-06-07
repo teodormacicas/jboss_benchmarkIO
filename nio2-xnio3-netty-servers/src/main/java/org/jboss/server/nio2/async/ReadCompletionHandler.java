@@ -34,6 +34,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.CompletionHandler;
 import java.nio.channels.FileChannel;
 
+import org.jboss.server.Server;
 import org.jboss.server.nio2.common.Nio2Utils;
 
 /**
@@ -86,6 +87,7 @@ class ReadCompletionHandler implements CompletionHandler<Integer, AsynchronousSo
                         String req = new String(bytes);
                         req = req.substring(req.indexOf(" ")+1);
                         req = req.substring(0, req.indexOf("?"));
+                        req = Server.workingDirectory + "/" + req;
                         //System.out.println("READ BUFFER " + req.substring(1));
 			try {
 				// write response to client; remove the leading '/' from filename

@@ -88,8 +88,16 @@ public class Utils
         return s.getWorkingDirectory()+"/log-"+s.getIpAddress()+"-"+s.getPort()+".data";
     }
     
+    public static String getServerLogTopRemoteFilename(Machine s) {
+        return s.getWorkingDirectory()+"/log-TOP-"+s.getIpAddress()+"-"+s.getPort()+".data";
+    }
+    
     public static String getServerLocalFilename(Machine s, int testNum) {
         return "log-server" + testNum + ".data";
+    }
+    
+    public static String getServerLocalTopFilename(Machine s, int testNum) {
+        return "log-TOP-server" + testNum + ".data";
     }
     
     public static String getClientRemoteSynchThreadsFilename(Client c) {

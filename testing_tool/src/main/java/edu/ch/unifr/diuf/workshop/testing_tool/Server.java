@@ -197,6 +197,14 @@ public class Server extends Machine
             return -1;
         }
         this.setPID(SSHCommands.getProgramPID(this, ssh_client));
+        // now start top on server 
+        r = SSHCommands.startServerTop(this, ssh_client);
+        if( r != 0 ) {
+            System.out.println("[ERROR] Could not start top on the server PID " 
+                    + this.getPID());
+            getServerLogAndPrintIt(ssh_client);
+            return -1;
+        }
         return 0;
     }
     
@@ -267,6 +275,18 @@ public class Server extends Machine
         if( getPID() != 0 )
             return SSHCommands.killProgram(this, ssh_client);
         return 1;
+    }
+    
+    /**
+     * 
+     * @param ssh_client
+     * @return
+     * @throws TransportException
+     * @throws IOException 
+     */
+    public int killTop(SSHClient ssh_client) 
+            throws TransportException, IOException { 
+        return SSHCommands.killTopProgram(this, ssh_client);
     }
 }
 

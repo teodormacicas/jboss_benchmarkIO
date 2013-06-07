@@ -28,6 +28,7 @@ package org.jboss.server.xnio3.sync;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import org.jboss.server.Server;
 import org.jboss.server.common.ClientManager;
 import org.xnio.channels.StreamChannel;
 
@@ -78,7 +79,7 @@ public class Xnio3ClientManager extends ClientManager<StreamChannel> {
                                         // it must be like: GET /data/file.txt?jSessionId=1dd6d040-f71c-4ca5-b2d6-b298dbd12b8a HTTP/1.1
                                         // get the file from the URI 
                                         String client_request = new String(bytes); 
-                                        String requested_file = client_request.substring(
+                                        String requested_file = Server.workingDirectory + "/" + client_request.substring(
                                                 client_request.indexOf(' '), client_request.indexOf('?') ).trim();
                                         System.out.println("Requested filename: " + requested_file);    
                                         

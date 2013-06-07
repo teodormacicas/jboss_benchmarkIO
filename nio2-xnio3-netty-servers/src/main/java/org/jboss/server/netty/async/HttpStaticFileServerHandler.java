@@ -46,6 +46,7 @@ import static org.jboss.netty.handler.codec.http.HttpVersion.*;
 import java.util.UUID;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
+import org.jboss.server.Server;
 
 /**
  * A simple handler that serves incoming HTTP requests to send their respective
@@ -146,7 +147,7 @@ public class HttpStaticFileServerHandler extends SimpleChannelUpstreamHandler {
             return;
         }
 
-        final String path = sanitizeUri(request.getUri());
+        final String path = Server.workingDirectory + "/" + sanitizeUri(request.getUri());
         System.out.println("path= " + path);
         if (path == null) {
             sendError(ctx, FORBIDDEN);
