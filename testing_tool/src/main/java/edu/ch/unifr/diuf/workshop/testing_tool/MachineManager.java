@@ -866,6 +866,11 @@ public class MachineManager
      */
     public void killServer() throws TransportException, IOException { 
         server.killServer(sshClients.get(0));
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         server.killTop(sshClients.get(0));
     }
     
@@ -998,9 +1003,11 @@ public class MachineManager
      * 
      * @throws InterruptedException 
      */
-    public void joinFaultTolerantThread() throws InterruptedException { 
-        this.ftt.setFinished(true);
-        this.ftt.join(4000);
+    public void joinFaultTolerantThread() throws InterruptedException {
+        if (ftt != null) {
+            this.ftt.setFinished(true);
+            this.ftt.join(4000);
+        }
     }
     
     /**
