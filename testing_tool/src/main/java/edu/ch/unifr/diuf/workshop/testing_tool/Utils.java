@@ -10,7 +10,7 @@ import java.util.UUID;
  */
 public class Utils 
 {   
-    public static final String PROPERTIES_FILENAME = "src/main/resources/server_clients.properties";
+    public static final String PROPERTIES_FILENAME = "server_clients.properties";
     
     public static final Integer DELAY_CHECK_CONN_MS = 4000;
     public static final Integer DELAY_WRITE_STATUS_MS = 4000;

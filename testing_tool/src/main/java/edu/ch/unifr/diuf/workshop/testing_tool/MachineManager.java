@@ -585,7 +585,7 @@ public class MachineManager
 
         String[] testsPropertyFileNames = config.getString("clients.tests").split("\\s+");
         for(String name : testsPropertyFileNames) {
-            String nameWithExtension = "src/main/resources/" +  name + ".properties";
+            String nameWithExtension = name + ".properties";
             Configuration testConfig = new PropertiesConfiguration(nameWithExtension);
             String serverType = testConfig.getString("server.type");
             String[] serverModes = testConfig.getString("server.mode").split("\\s+");
@@ -866,6 +866,11 @@ public class MachineManager
      */
     public void killServer() throws TransportException, IOException { 
         server.killServer(sshClients.get(0));
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         server.killTop(sshClients.get(0));
     }
     
@@ -970,9 +975,11 @@ public class MachineManager
      * 
      * @throws InterruptedException 
      */
-    public void joinFaultTolerantThread() throws InterruptedException { 
-        this.ftt.setFinished(true);
-        this.ftt.join(4000);
+    public void joinFaultTolerantThread() throws InterruptedException {
+        if (ftt != null) {
+            this.ftt.setFinished(true);
+            this.ftt.join(4000);
+        }
     }
     
     /**
