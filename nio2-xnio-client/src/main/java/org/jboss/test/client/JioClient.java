@@ -224,7 +224,7 @@ public class JioClient extends Thread {
 			// time = System.currentTimeMillis() - time;
 			timeRead = System.nanoTime();
 			// delays.add(time);
-			System.out.println("WRITE " + (timeWrite - startTime) + "ns | READ " + (timeRead - startTime) + "ns");
+			System.out.println("WRITE " + (timeWrite - startTime) + " READ " + (timeRead - startTime));
 		        delays.add(timeRead - timeWrite);
 
 			/*

@@ -912,22 +912,50 @@ public class MachineManager
      * Download on local folder all the logs from server and clients.
      * @throws IOException 
      */
-    public void downloadAllLogs() throws IOException { 
+    public void downloadAllLogs() throws IOException, InterruptedException { 
+        String currentDir = new java.io.File( "." ).getCanonicalPath();
+
         SSHCommands.downloadRemoteFile(server, Utils.getServerLogRemoteFilename(server),
                 Utils.getServerLocalFilename(server,testNum), sshClients.get(0));
         System.out.println("[INFO] Server log file " + Utils.getServerLocalFilename(server,testNum) +
                 " is locally downloaded. Please check it." );
         SSHCommands.downloadRemoteFile(server, Utils.getServerLogTopRemoteFilename(server),
                 Utils.getServerLocalTopFilename(server,testNum), sshClients.get(0));
+        // also parse the server file and create two for CPU and mem
+        Runtime.getRuntime().exec(new String[]{"bash","-c",
+                    "cat " + currentDir +"/"
+                    + Utils.getServerLocalTopFilename(server, testNum)
+                    + " | grep Cpu  > " 
+                    + currentDir + "/"
+                    + Utils.getServerLocalCPUFilename(server, testNum)})
+                .waitFor();
+        
+       Runtime.getRuntime().exec(new String[]{"bash", "-c", 
+                    "cat " + currentDir +"/"
+                    + Utils.getServerLocalTopFilename(server, testNum)
+                    + " | grep java > " 
+                    + currentDir + "/"
+                    + Utils.getServerLocalMEMFilename(server, testNum)})
+               .waitFor();
+       
         int counter=-1;
         for(Iterator it=clients.iterator(); it.hasNext(); ) { 
             Client c = (Client)it.next();
             SSHCommands.downloadRemoteFile(c, Utils.getClientLogRemoteFilename(c),
                     Utils.getClientLocalFilename(c, ++counter, testNum), 
                     sshClients.get(c.getId()+1));
+         
+            // also parse the file a bit
+            Runtime.getRuntime().exec(new String[]{"bash","-c",
+                    "cat " + currentDir + "/" 
+                    + Utils.getClientLocalFilename(c, counter, testNum)
+                    + " | grep WRITE  > " 
+                    + currentDir + "/" 
+                    + Utils.getClientLocalParsedFilename(c, counter, testNum)});
         }
         testNum++;
     }
+    
     
     /**
      * 

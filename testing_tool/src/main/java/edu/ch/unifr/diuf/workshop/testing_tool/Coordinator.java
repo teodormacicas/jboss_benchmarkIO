@@ -303,7 +303,7 @@ public class Coordinator
                 System.out.println("[INFO] Client tests are done.");
 
                 System.out.println("[INFO] Now locally download the logs from the clients.");
-                // get all logs to the server
+                // get all logs to the server 
                 mm.downloadAllLogs();
                 System.out.println("[INFO] All the logs are downloaded. For further information "
                         + "please check them.");

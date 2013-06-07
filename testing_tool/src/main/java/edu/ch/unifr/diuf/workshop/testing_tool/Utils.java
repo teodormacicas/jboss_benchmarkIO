@@ -84,6 +84,10 @@ public class Utils
         return "log-client"+no_c+ "-" + testNum + ".data";
     }
     
+    public static String getClientLocalParsedFilename(Client c, int no_c, int testNum) {
+        return "log-RESP_TIME-client"+no_c+ "-" + testNum + ".data";
+    }
+    
     public static String getServerLogRemoteFilename(Machine s) {
         return s.getWorkingDirectory()+"/log-"+s.getIpAddress()+"-"+s.getPort()+".data";
     }
@@ -94,6 +98,14 @@ public class Utils
     
     public static String getServerLocalFilename(Machine s, int testNum) {
         return "log-server" + testNum + ".data";
+    }
+    
+    public static String getServerLocalCPUFilename(Machine s, int testNum) {
+        return "log-CPU-server" + testNum + ".data";
+    }
+    
+    public static String getServerLocalMEMFilename(Machine s, int testNum) {
+        return "log-MEM-server" + testNum + ".data";
     }
     
     public static String getServerLocalTopFilename(Machine s, int testNum) {
