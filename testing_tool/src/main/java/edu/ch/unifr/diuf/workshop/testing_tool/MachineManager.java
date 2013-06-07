@@ -585,7 +585,7 @@ public class MachineManager
 
         String[] testsPropertyFileNames = config.getString("clients.tests").split("\\s+");
         for(String name : testsPropertyFileNames) {
-            String nameWithExtension = "src/main/resources/" +  name + ".properties";
+            String nameWithExtension = name + ".properties";
             Configuration testConfig = new PropertiesConfiguration(nameWithExtension);
             String serverType = testConfig.getString("server.type");
             String[] serverModes = testConfig.getString("server.mode").split("\\s+");
