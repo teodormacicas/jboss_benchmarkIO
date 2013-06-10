@@ -27,25 +27,25 @@ public class Coordinator
             mm.parsePropertiesFile();
         }
         catch( WrongIpAddressException|WrongPortNumberException|ClientNotProperlyInitException ex ) {
-            LOGGER.log(Level.SEVERE, "[EXCEPTION] Setting up a machine.", ex);
+            LOGGER.log(Level.SEVERE, "Error while setting up a machine. " + ex.getMessage());
             System.exit(1);
         }
         catch( ConfigurationException ex4 ) { 
-            LOGGER.log(Level.SEVERE, "[EXCEPTION] Reading the properties file.", ex4);
+            LOGGER.log(Level.SEVERE, ex4.getMessage());
             System.exit(4);
         }
         catch( FileNotFoundException ex5 ) {
-            LOGGER.log(Level.SEVERE, "[EXCEPTION] Either server local program or the client"
-                    + " local program could not be found.", ex5);
+            LOGGER.log(Level.SEVERE, ex5.getMessage());
             System.exit(5);
         }
         catch( UnwritableWorkingDirectoryException ex6 ) { 
-            LOGGER.log(Level.SEVERE, "[EXCEPTION] Either working directory of the server "
-                    + " or of a client is not writable.", ex6);
+            LOGGER.log(Level.SEVERE, "Either working directory of the server "
+                    + " or of a client is not writable. " + ex6.getMessage());
             System.exit(56);
         }
         catch( Exception ex7 ) { 
-            LOGGER.log(Level.SEVERE, "[EXCEPTION] ", ex7);
+            LOGGER.log(Level.SEVERE, "Please verify if all needed parameters are "
+                    + "declared in the properties file." , ex7);
             System.exit(56);
         }
         // print the machines that have been created according to the properties file
@@ -56,13 +56,13 @@ public class Coordinator
         
         // are both server and clients set up?
         if( ! mm.checkIfClientAndServerSet() ) { 
-            LOGGER.severe("[ERROR] Either clients or the server is not yet configured. "
+            LOGGER.severe("Either clients or the server is not yet configured. "
                     + "Please do so before you start once again.");
             System.exit(6);
         }
         // are either all or none loopback addresses used?
         if( ! mm.checkIfAllOrNoneLoopbackAddresses() ) { 
-            LOGGER.severe("[ERROR] Please either use loopback addresses for all clients "
+            LOGGER.severe("Please either use loopback addresses for all clients "
                     + "and server OR non-loopback for all machines. This will be "
                     + "more probably they can reach other.");
             System.exit(7);
@@ -72,16 +72,16 @@ public class Coordinator
         try {
             // can all clients, at least, ping the server?
             if( ! mm.checkClientsCanAccessServer() ) {
-                LOGGER.severe("[ERROR] Not all clients can ping the server. Check once again "
+                LOGGER.severe("Not all clients can ping the server. Check once again "
                         + "the IP addresses and/or the network status.");
                 System.exit(8);
             }
         } catch (TransportException ex) {
-            LOGGER.log(Level.SEVERE, "[EXCEPTION] catched while checking clients "
+            LOGGER.log(Level.SEVERE, "Exception catched while checking clients "
                     + "network connection to the server.", ex);
             System.exit(8);
         } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "[EXCEPTION] catched while checking clients "
+            LOGGER.log(Level.SEVERE, "Exception catched while checking clients "
                     + "network connection to the server.", ex);
             System.exit(8);
         }
@@ -101,10 +101,10 @@ public class Coordinator
             System.out.println("[INFO] Start uploading the program to server ...");
             mm.uploadProgramToServer();
         } catch (TransportException ex) {
-                LOGGER.log(Level.SEVERE, null, ex);
+                LOGGER.log(Level.SEVERE, ex.getMessage());
                 System.exit(9);
         } catch (IOException ex) {
-                LOGGER.log(Level.SEVERE, null, ex);
+                LOGGER.log(Level.SEVERE, ex.getMessage());
                 System.exit(10);
         }
         // now start the connectivity and status threads

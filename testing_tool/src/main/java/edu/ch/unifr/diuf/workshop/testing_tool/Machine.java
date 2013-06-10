@@ -222,6 +222,11 @@ public class Machine
      * @param workingDirectory 
      */
     public void setWorkingDirectory(String workingDirectory) {
+        if( ! new File(workingDirectory).exists() ) {
+            System.out.println("[INFO] Create non-existing working "
+                    + "directory " + workingDirectory);
+            new File(workingDirectory).mkdirs();
+        }
         this.workingDirectory = workingDirectory;
     }
     

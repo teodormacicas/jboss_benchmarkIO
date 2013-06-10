@@ -143,7 +143,10 @@ public class Server extends Machine
      * @param faultTolerant 
      */
     public void setFaultTolerant(String faultTolerant) { 
-        this.faultTolerant = faultTolerant;
+        if( faultTolerant.length() == 0 || ! faultTolerant.equals("yes")) 
+            this.faultTolerant = "no";
+        else
+            this.faultTolerant = "yes";
     }
     
     /**

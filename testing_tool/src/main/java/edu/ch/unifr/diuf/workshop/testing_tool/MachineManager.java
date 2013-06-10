@@ -475,81 +475,111 @@ public class MachineManager
                 Utils.PROPERTIES_FILENAME);
         
         // get server program filename 
-        Utils.SERVER_PROGRAM_LOCAL_FILENAME = config.getString("server.programJarFile").trim();
-        if( Utils.SERVER_PROGRAM_LOCAL_FILENAME.isEmpty() ||
-            new File(Utils.SERVER_PROGRAM_LOCAL_FILENAME).exists() == false ) {
-            
-            throw new FileNotFoundException("Server local program file (" + 
-                    Utils.SERVER_PROGRAM_LOCAL_FILENAME + ") does not exist. "
-                    + "Please pass an already existing file or a correct path.");
+        Utils.SERVER_PROGRAM_LOCAL_FILENAME = config.getString("server.programJarFile");
+        if( Utils.SERVER_PROGRAM_LOCAL_FILENAME == null || 
+            Utils.SERVER_PROGRAM_LOCAL_FILENAME.isEmpty() ||
+            ! new File(Utils.SERVER_PROGRAM_LOCAL_FILENAME).exists() ) {
+            throw new FileNotFoundException("Please pass a valid (i.e. existing and "
+                    + "not null) parameter as server local jar file. (current value" +
+                    ((Utils.SERVER_PROGRAM_LOCAL_FILENAME == null)?"null":Utils.SERVER_PROGRAM_LOCAL_FILENAME)+")");
         }
+        Utils.SERVER_PROGRAM_LOCAL_FILENAME = Utils.SERVER_PROGRAM_LOCAL_FILENAME.trim();
         
         // get server info 
         String serverDataFolder = config.getString("server.dataFolder");
         String serverSSHUserHost = config.getString("server.sshUserHostPort");
+        if( ! serverSSHUserHost.contains("@") ) {
+            throw new ConfigurationException("Parsing error of server.sshUserHostPort. "
+                        + "Please pass data using the pattern Host@IP[:PORT]. ");
+        }
         String serverSSHUsername = serverSSHUserHost.substring(0, serverSSHUserHost.indexOf("@"));
         String serverSSHIpPort = serverSSHUserHost.substring(serverSSHUserHost.indexOf("@")+1);
+        if( serverSSHIpPort.length() == 0 ) {
+            throw new ConfigurationException("Parsing error of server.sshUserHostPort. "
+                        + "Please pass data using the pattern Host@IP[:PORT]. ");
+        }
         String serverListenHostPort = config.getString("server.listenHostPort");
         String serverFaultTolerant = config.getString("server.faultTolerant");
         String serverRestartAttempts = config.getString("server.restartAttempts");
         String serverWorkingDir = config.getString("server.workingDirectory");
-        //String serverSSHPassword = config.getString("server.sshPassword");
-        StringTokenizer st = new StringTokenizer(serverSSHIpPort, ":");
-        if( st.countTokens() != 2 ) { 
-            LOGGER.severe("Parsing error of server.sshIpPort. Please pass data "
-                    + "using the pattern IP:PORT and nothing more. " + serverSSHIpPort);
-            throw new ConfigurationException("Parsing error of server.sshIpPort. "
-                    + "Please pass data using the pattern IP:PORT and nothing more. " 
-                    + serverSSHIpPort);
-        }
-        // create the server here
-        this.server = new Server(st.nextToken(), Integer.valueOf(st.nextToken()), 
+        StringTokenizer st = null;
+        st = new StringTokenizer(serverSSHIpPort, ":");
+        if( serverSSHIpPort.contains(":") ) {
+            if( st.countTokens() != 2 ) { 
+                LOGGER.severe("Parsing error of server.sshIpPort. Please pass data "
+                        + "using the pattern IP:PORT and nothing more. " + serverSSHIpPort);
+                throw new ConfigurationException("Parsing error of server.sshUserHostPort. "
+                        + "Please pass data using the pattern Host@IP[:PORT]. " 
+                        + serverSSHIpPort);
+            }
+            // create the server here
+            this.server = new Server(st.nextToken(), Integer.valueOf(st.nextToken()), 
                 serverSSHUsername);
+        }
+        else {
+            // use default SSH port (22)
+            this.server = new Server(st.nextToken(), 22, serverSSHUsername);
+        }
+        
         st = new StringTokenizer(serverListenHostPort, ":");
-        if( st.countTokens() != 2 ) {
-            LOGGER.severe("Parsing error of server.listenHostPort. Please pass data "
-                    + "using the pattern IP:PORT and nothing more. " + serverSSHIpPort);
+        if( !serverListenHostPort.contains(":") || st.countTokens() != 2 ) {
             throw new ConfigurationException("Parsing error of server.listenHostPort. "
-                    + "Please pass data using the pattern IP:PORT and nothing more. " 
-                    + serverSSHIpPort);
+                    + "Please pass data using the pattern IP:PORT. " 
+                    + serverListenHostPort);
         }
         this.server.setServerHTTPListenAddress(st.nextToken());
         this.server.setServerHttpPort(Integer.valueOf(st.nextToken()));
-       /* if( SSHCommands.checkIfRemoteDirIsWritable(server, serverWorkingDir, sshClients.get(0)) != 0 )
-            throw new UnwritableWorkingDirectoryException(serverWorkingDir);
-        else*/
+
         this.server.setWorkingDirectory(serverWorkingDir);
         this.server.setDataFolderPath(serverDataFolder);
         this.server.setFaultTolerant(serverFaultTolerant.trim());
-        if( Integer.valueOf(serverRestartAttempts) < 0 ) {
-            LOGGER.severe("Parsing error of server.restartAttepmts. Please check the "
-                    + "right format in the properties file and re-run this.");
+        try {
+            int no_rest = Integer.valueOf(serverRestartAttempts);
+            if( no_rest < 0 ) {
+                throw new ConfigurationException("Parsing error of server.restartAttempts. "
+                        + "Please check the right format in the properties file and re-run this.");
+            }
+        } catch (NumberFormatException ex) { 
             throw new ConfigurationException("Parsing error of server.restartAttempts. "
-                    + "Please check the right format in the properties file and re-run this.");
+                        + "Please pass integer value to this parameter.");
         }
         this.server.setRestartAttempts(Integer.valueOf(serverRestartAttempts));        
         
         // get clients program filename 
-        Utils.CLIENT_PROGRAM_LOCAL_FILENAME = config.getString("clients.programJarFile").trim();
-        if( Utils.CLIENT_PROGRAM_LOCAL_FILENAME.isEmpty() ||
+        Utils.CLIENT_PROGRAM_LOCAL_FILENAME = config.getString("clients.programJarFile");
+        if( Utils.CLIENT_PROGRAM_LOCAL_FILENAME == null || 
+            Utils.CLIENT_PROGRAM_LOCAL_FILENAME.isEmpty() ||
             ! new File(Utils.CLIENT_PROGRAM_LOCAL_FILENAME).exists() ) {
             throw new FileNotFoundException("Client local program file (" + 
-                    Utils.CLIENT_PROGRAM_LOCAL_FILENAME + ") does not exist. "
-                    + "Please pass an already existing file or a correct path.");
+                    ((Utils.CLIENT_PROGRAM_LOCAL_FILENAME==null)?"null":Utils.CLIENT_PROGRAM_LOCAL_FILENAME)
+                    + ") does not exist. Please pass an already existing "
+                    + "file or a correct path.");
         }
+        Utils.CLIENT_PROGRAM_LOCAL_FILENAME = Utils.CLIENT_PROGRAM_LOCAL_FILENAME.trim();
         
         // this is used by the clients 
         List clientsUserHostPort = config.getList("clients.sshUserHostPort");
         String clientsWorkingDir = config.getString("clients.workingDirectory");
         String clientsRestartCondition = config.getString("clients.restartConditionPropThreadsDead");
-        double clients_rest_cond = Double.valueOf(clientsRestartCondition);
-        if( clients_rest_cond < 0 || clients_rest_cond > 1 ) { 
-            LOGGER.severe("Please give restartConditionPropThreadsDead parameter"
-                    + " as double between 0 and 1 inclusive. ");
-            throw new ConfigurationException("Please give restartConditionPropThreadsDead parameter"
-                    + " as double between 0 and 1 inclusive. ");
+        double clients_rest_cond = 0;
+        try {
+            clients_rest_cond = Double.valueOf(clientsRestartCondition);
+            if( clients_rest_cond < 0 || clients_rest_cond > 1 ) { 
+                throw new ConfigurationException("Please give restartConditionPropThreadsDead parameter"
+                        + " as double between 0 and 1 inclusive. ");
+            }
+        }catch (NumberFormatException ex) {
+            throw new ConfigurationException("Parsing error of clients.restartConditionPropThreadsDead. "
+                        + "Please pass double value to this parameter.");
         }
         String clientsTimeoutSec = config.getString("clients.timeoutSeconds");
+        int clients_timeout_s;
+        try {
+            clients_timeout_s = Integer.valueOf(clientsTimeoutSec);
+        } catch (NumberFormatException ex) {
+            throw new ConfigurationException("Parsing error of clients.timeoutSeconds. "
+                        + "Please pass double value to this parameter.");
+        }
         List clientsTests = config.getList("clients.tests");
 
         // iterate the list and create the clients
@@ -557,22 +587,32 @@ public class MachineManager
         for(Iterator it=clientsUserHostPort.iterator(); it.hasNext(); ) {
             ++counter;
             String client_host = (String)it.next();
+            if( ! client_host.contains("@") ) {
+                throw new ConfigurationException("Parsing error of clients.sshUserHostPort. "
+                        + "Please pass data using the pattern Host@IP[:PORT]. ");
+            }   
             String clientSSHUsername = client_host.substring(0, client_host.indexOf("@"));
             String clientSSHIpPort = client_host.substring(client_host.indexOf("@")+1);
             st = new StringTokenizer(clientSSHIpPort, ":");
-            if( st.countTokens() > 2 ) { 
-                LOGGER.severe("Parsing error of client.sshUserHostPort. Please pass data "
-                    + "using the pattern username@IP:PORT. " + client_host);
-                throw new ConfigurationException("Parsing error of client.sshUserHostPort. "
-                    + "Please pass data using the pattern username@IP:PORT. "
-                    + client_host);
-            }
-            Client c = new Client(st.nextToken(), Integer.valueOf(st.nextToken()), 
+            Client c;
+            if( clientSSHIpPort.contains(":") ) {
+                if( st.countTokens() != 2 ) { 
+                    throw new ConfigurationException("Parsing error of client.sshUserHostPort. "
+                        + "Please pass data using the pattern Host@IP[:PORT]. " 
+                        + clientSSHIpPort);
+                }
+                // create the server here
+                c = new Client(st.nextToken(), Integer.valueOf(st.nextToken()), 
                     clientSSHUsername, counter);
+            }
+            else {
+                // use default SSH port (22)
+                c = new Client(st.nextToken(), 22, clientSSHUsername, counter);
+            }
             // set server info 
             c.setServerInfo(server.getIpAddress(), server.getServerHttpPort());
             c.setRestartConditionPropThreadsDead(clients_rest_cond);
-            c.setTimeoutSec(Integer.valueOf(clientsTimeoutSec));
+            c.setTimeoutSec(clients_timeout_s);
             c.setWorkingDirectory(clientsWorkingDir);
             
             // add tests
