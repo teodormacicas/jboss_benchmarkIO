@@ -623,6 +623,7 @@ public class MachineManager
             this.addNewClient(c);
         }
 
+        // parse tests files
         String[] testsPropertyFileNames = config.getString("clients.tests").split("\\s+");
         for(String name : testsPropertyFileNames) {
             String nameWithExtension = name + ".properties";

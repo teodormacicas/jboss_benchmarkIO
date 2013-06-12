@@ -140,9 +140,7 @@ public class Coordinator
         Coordinator coord = new Coordinator();
 
         for(TestParams test: testParamsList) {
-
             for (int i = 0; i < test.getTestNum(); i++) {
-
                 try {
                     mm.getServer().setServerType(test.getServerType());
                 } catch (WrongServerTypeException e) {
@@ -151,7 +149,6 @@ public class Coordinator
                 }
 
                 for(String mode :test.getServerModes()) {
-
                     try {
                         mm.getServer().setServerMode(mode);
                     } catch (WrongServerModeException e) {
@@ -160,15 +157,14 @@ public class Coordinator
                     }
 
                     for(int j = 0; j < test.getRequestNum().length; j++) {
-
                         coord.setAllClientsRequestNum(mm, Integer.valueOf(test.getRequestNum()[j]));
-
                         for(int k = 0; k < test.getDelays().length; k++) {
-
                             coord.setAllClientsDelay(mm, Integer.valueOf(test.getDelays()[k]));
-
+                            coord.setAllClientsNoThreads(mm, Integer.valueOf(test.getThreadsNum()));
+                            
                             StringBuilder sbTest = new StringBuilder("[INFO] Test with parameters:");
-                            sbTest.append(test.getServerType()).append(' ').append(mode).append(' ').append(test.getRequestNum()[j]).append(' ').append(test.getDelays()[k]);
+                            sbTest.append(test.getServerType()).append(' ').append(mode).append(' ').append(test.getThreadsNum()).
+                                    append(' ').append(test.getDelays()[k]).append(' ').append(test.getRequestNum()[j]);
                             System.out.println(sbTest.toString());
                             coord.runClients(mm, sbTest.toString());
                         }
@@ -192,8 +188,14 @@ public class Coordinator
     }
 
     private void setAllClientsDelay(MachineManager mm, int delay) {
-            for(int j = 0; j < mm.getClientsNum(); j++) {
+        for(int j = 0; j < mm.getClientsNum(); j++) {
             mm.getClientNo(j).setDelay(delay);
+        }
+    }
+    
+    private void setAllClientsNoThreads(MachineManager mm, int noThreads) {
+        for(int j = 0; j < mm.getClientsNum(); j++) {
+                mm.getClientNo(j).setNoThreads(noThreads);
         }
     }
 
