@@ -207,16 +207,16 @@ public class JioClient extends Thread {
 		        timeWrite =  System.nanoTime();
                         
                         // HTTP REQUEST HERE !!! 
-                        StringBuffer buf = new StringBuffer();
+                        /*StringBuffer buf = new StringBuffer();
                         buf.append("GET /data/file.txt?jSessionId=" + this.sessionId + " HTTP/1.1" + CRLF);
-                        /*if( this.max != 0 ) {
+                        if( this.max != 0 ) {
                             buf.append("Connection: keep-alive \n");
-                        }*/
+                        }
                         buf.append(CRLF);
 			write(buf.toString());
-
-                        System.out.println("Send this HTTP request: ");
+                        //System.out.println("Send this HTTP request: ");
                         System.out.println("GET /data/file.txt?jSessionId=" + this.sessionId + " HTTP/1.1" + CRLF + CRLF);
+                        */
                         
                         //get the response 
                         response = read();
@@ -243,12 +243,10 @@ public class JioClient extends Thread {
 			 */
 			counter++;
 		}
-
-        Long sum = 0l;
-
+                Long sum = 0l;
 		for (Long d : delays) {
-			System.out.println(d);
-            sum += d;
+                    System.out.println(d);
+                    sum += d;
 		}
 
         //calculating an average response
