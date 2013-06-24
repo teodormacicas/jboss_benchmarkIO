@@ -493,7 +493,7 @@ public class MachineManager
                         + "Please pass data using the pattern Host@IP[:PORT]. ");
         }
         String serverSSHUsername = serverSSHUserHost.substring(0, serverSSHUserHost.indexOf("@"));
-        String serverSSHIpPort = serverSSHUserHost.substring(serverSSHUserHost.indexOf("@")+1);
+        String serverSSHIpPort = serverSSHUserHost.substring(serverSSHUserHost.indexOf("@") + 1);
         if( serverSSHIpPort.length() == 0 ) {
             throw new ConfigurationException("Parsing error of server.sshUserHostPort. "
                         + "Please pass data using the pattern Host@IP[:PORT]. ");
@@ -973,7 +973,7 @@ public class MachineManager
                     + Utils.getServerLocalTopFilename(server, testNum)
                     + " | grep Cpu  > " 
                     + currentDir + "/"
-                    + Utils.getServerLocalCPUFilename(server, testNum)})
+                    + Utils.getServerLocalCPUFilename(testNum, clients.get(0).getDelay())})
                 .waitFor();
         
        Runtime.getRuntime().exec(new String[]{"bash", "-c", 
@@ -981,7 +981,7 @@ public class MachineManager
                     + Utils.getServerLocalTopFilename(server, testNum)
                     + " | grep java > " 
                     + currentDir + "/"
-                    + Utils.getServerLocalMEMFilename(server, testNum)})
+                    + Utils.getServerLocalMEMFilename(testNum, clients.get(0).getDelay())})
                .waitFor();
        
         int counter=-1;

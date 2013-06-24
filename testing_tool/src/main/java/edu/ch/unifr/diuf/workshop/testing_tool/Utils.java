@@ -85,7 +85,7 @@ public class Utils
     }
     
     public static String getClientLocalParsedFilename(Client c, int no_c, int testNum) {
-        return "log-RESP_TIME-client"+no_c+ "-" + "test" + testNum + "-" + c.getNoThreads() + "-" + c.getDelay() + "-" +c.getNoReq() + "-log.data";
+        return "log-RESP_TIME-client"+no_c+ "-test" + testNum + "-" + c.getNoThreads() + "-" + c.getDelay() + "-" +c.getNoReq() + "-log.data";
     }
     
     public static String getServerLogRemoteFilename(Machine s) {
@@ -100,12 +100,12 @@ public class Utils
         return "log-server" + testNum + ".data";
     }
     
-    public static String getServerLocalCPUFilename(Machine s, int testNum) {
-        return "log-CPU-server" + testNum + ".data";
+    public static String getServerLocalCPUFilename(int testNum, int delay) {
+        return "log-CPU-server" + "-test" + testNum + "-delay" + delay + ".data";
     }
     
-    public static String getServerLocalMEMFilename(Machine s, int testNum) {
-        return "log-MEM-server" + testNum + ".data";
+    public static String getServerLocalMEMFilename(int testNum, int delay) {
+        return "log-MEM-server" + "-test" + testNum + "-delay" + delay + ".data";
     }
     
     public static String getServerLocalTopFilename(Machine s, int testNum) {
