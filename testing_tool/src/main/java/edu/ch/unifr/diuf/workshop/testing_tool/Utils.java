@@ -85,7 +85,7 @@ public class Utils
     }
     
     public static String getClientLocalParsedFilename(Client c, int no_c, int testNum) {
-        return "log-RESP_TIME-client"+no_c+ "-" + testNum + ".data";
+        return "log-RESP_TIME-client"+no_c+ "-" + "test" + testNum + "-" + c.getNoThreads() + "-" + c.getDelay() + "-" +c.getNoReq() + "-log.data";
     }
     
     public static String getServerLogRemoteFilename(Machine s) {

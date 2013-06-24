@@ -995,7 +995,7 @@ public class MachineManager
             Runtime.getRuntime().exec(new String[]{"bash","-c",
                     "cat " + currentDir + "/" 
                     + Utils.getClientLocalFilename(c, counter, testNum)
-                    + " | grep WRITE  > " 
+                    + " | egrep -x '^WRITE [0-9]+ READ [0-9]+' > "
                     + currentDir + "/" 
                     + Utils.getClientLocalParsedFilename(c, counter, testNum)});
         }
