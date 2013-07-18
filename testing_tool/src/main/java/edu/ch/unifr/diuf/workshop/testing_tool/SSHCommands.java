@@ -170,7 +170,7 @@ public class SSHCommands
             sb.append(Utils.getClientProgramRemoteFilename(client));
             // flag for distributed mode enabled (to enable the synch mechanism via files)
             sb.append(" yes ");  
-            sb.append(server.getIpAddress());
+            sb.append(server.getServerHTTPListenAddress());
             sb.append(" ");
             sb.append(server.getServerHttpPort());
             sb.append(" ");
