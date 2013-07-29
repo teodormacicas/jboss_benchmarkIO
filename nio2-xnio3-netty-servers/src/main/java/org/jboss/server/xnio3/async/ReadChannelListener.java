@@ -78,7 +78,7 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
                                 // e.g. GET /data/file.txt?jSessionId=d85381bc-da9e-4cee-878f-6f486bb1ecec HTTP/1.1
                                 // retrieve the "/data/file.txt" 
                                 String req = new String(bytes);
-                                System.out.println("READ BUFFER " + req);
+                                // System.out.println("READ BUFFER " + req);
                                 req = req.substring(req.indexOf(" ")+1);
                                 req = req.substring(0, req.indexOf("?"));
                                 //System.out.println("READ BUFFER " + req.substring(1));
