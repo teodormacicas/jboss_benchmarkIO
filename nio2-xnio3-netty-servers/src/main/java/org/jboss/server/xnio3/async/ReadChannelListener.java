@@ -74,17 +74,20 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 				readBuffer.get(bytes);
 				readBuffer.clear();
                                 
-                                // get the filename out of the request
-                                // e.g. GET /data/file.txt?jSessionId=d85381bc-da9e-4cee-878f-6f486bb1ecec HTTP/1.1
-                                // retrieve the "/data/file.txt" 
-                                String req = new String(bytes);
-                                System.out.println("READ BUFFER " + req);
-                                req = req.substring(req.indexOf(" ")+1);
-                                req = req.substring(0, req.indexOf("?"));
-                                //System.out.println("READ BUFFER " + req.substring(1));
-                                req = Server.workingDirectory + req;
-				// write response to client; remove the leading '/' from filename
-				writeResponse(channel, req.substring(1));
+            // get the filename out of the request
+            // e.g. GET /data/file.txt?jSessionId=d85381bc-da9e-4cee-878f-6f486bb1ecec HTTP/1.1
+            // retrieve the "/data/file.txt" 
+            String req = new String(bytes);
+            if( req.startsWith("GET") ) { 
+               //System.out.println("READ BUFFER " + req);
+        
+               req = req.substring(req.indexOf(" ")+1);
+               req = req.substring(0, req.indexOf("?"));
+               //System.out.println("READ BUFFER " + req.substring(1));
+               req = Server.workingDirectory + req;
+   				// write response to client; remove the leading '/' from filename
+	   			writeResponse(channel, req.substring(1));
+            }
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -126,7 +129,7 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 
 		while (nw < total) {
                         //TODO: IT BLOCKS HERE !!!!!!!!!1
-                        System.out.println("BLCOK: " + nw + " total " + total );
+                        //System.out.println("BLCOK: " + nw + " total " + total );
 			// Wait until the channel becomes writable again
 			channel.awaitWritable();
 			x = channel.write(buffers);
