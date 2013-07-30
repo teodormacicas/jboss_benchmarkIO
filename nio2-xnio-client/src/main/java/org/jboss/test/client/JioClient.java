@@ -279,7 +279,7 @@ public class JioClient extends Thread {
                         //System.out.println(new String(bytes, 0, nBytes));
                         // NUL signals the end of the request
                         if (nBytes >= 1 && bytes[nBytes - 1] == '\0' ) { // && bytes[nBytes - 2] == '\r') {
-                                System.out.println("\n**** NUL attempted ****");
+                                /// end of message
 				break;
 			}
 		}
